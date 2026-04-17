@@ -1,0 +1,97 @@
+docstrings_as_text = true
+landing_page = "MgwTopology"
+
+[metadata]
+title = "MgwTopology"
+description = "A Mathlib-free Lean 4 port of the topological content of topology.mg (Megalodon)."
+
+[order_children]
+"MgwTopology" = [
+  "MgwTopology.SetLib",
+  "MgwTopology.Core",
+  "MgwTopology.Basis",
+  "MgwTopology.ClosureInterior",
+  "MgwTopology.Examples",
+  "MgwTopology.Order",
+  "MgwTopology.Subspace",
+  "MgwTopology.Continuous",
+  "MgwTopology.ClosedAndLimit",
+  "MgwTopology.BinaryProduct",
+  "MgwTopology.Product",
+  "MgwTopology.Separation",
+  "MgwTopology.Connected",
+  "MgwTopology.Compact",
+  "MgwTopology.Countability",
+  "MgwTopology.LocalCompact",
+  "MgwTopology.Normal",
+  "MgwTopology.LocalFinite",
+  "MgwTopology.Paracompact",
+  "MgwTopology.FunctionSpace",
+  "MgwTopology.Baire",
+]
+
+[modules."MgwTopology"]
+title = "MgwTopology — a Mathlib-free port of topology.mg"
+
+[modules."MgwTopology.SetLib"]
+title = "SetLib — Set α := α → Prop and set algebra"
+
+[modules."MgwTopology.Core"]
+title = "Core — Topology α and §12 basics"
+
+[modules."MgwTopology.Basis"]
+title = "Basis — topologies from bases and subbases"
+
+[modules."MgwTopology.ClosureInterior"]
+title = "Closure / Interior / Boundary"
+
+[modules."MgwTopology.Examples"]
+title = "Examples — discrete, indiscrete, cofinite"
+
+[modules."MgwTopology.Order"]
+title = "Order — order topology"
+
+[modules."MgwTopology.Subspace"]
+title = "§16 Subspace topology"
+
+[modules."MgwTopology.Continuous"]
+title = "§18 Continuous functions"
+
+[modules."MgwTopology.ClosedAndLimit"]
+title = "§17 Closed sets, limit points, Hausdorff"
+
+[modules."MgwTopology.BinaryProduct"]
+title = "§15 Binary product topology"
+
+[modules."MgwTopology.Product"]
+title = "§19 Indexed box product"
+
+[modules."MgwTopology.Separation"]
+title = "§31 Separation axioms (T1, Hausdorff, Regular, Normal)"
+
+[modules."MgwTopology.Connected"]
+title = "Connectedness (stub)"
+
+[modules."MgwTopology.Compact"]
+title = "§26 Compactness"
+
+[modules."MgwTopology.Countability"]
+title = "§30 Countability axioms"
+
+[modules."MgwTopology.LocalCompact"]
+title = "§29 Locally compact spaces"
+
+[modules."MgwTopology.Normal"]
+title = "§32 Normal spaces"
+
+[modules."MgwTopology.LocalFinite"]
+title = "§39 Locally finite families"
+
+[modules."MgwTopology.Paracompact"]
+title = "§41 Paracompactness"
+
+[modules."MgwTopology.FunctionSpace"]
+title = "§46 Function spaces"
+
+[modules."MgwTopology.Baire"]
+title = "§48 Baire spaces"
