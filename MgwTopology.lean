@@ -1,0 +1,21 @@
+-- Root of the MgwTopology library. Real-free topology port of topology.mg.
+import MgwTopology.Core
+import MgwTopology.ClosureInterior
+import MgwTopology.Basis
+import MgwTopology.Examples
+import MgwTopology.Order
+import MgwTopology.Subspace
+import MgwTopology.Continuous
+import MgwTopology.ClosedAndLimit
+import MgwTopology.BinaryProduct
+import MgwTopology.Product
+import MgwTopology.Separation
+import MgwTopology.Connected
+import MgwTopology.Compact
+import MgwTopology.Countability
+import MgwTopology.LocalCompact
+import MgwTopology.Normal
+import MgwTopology.LocalFinite
+import MgwTopology.Paracompact
+import MgwTopology.FunctionSpace
+import MgwTopology.Baire
