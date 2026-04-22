@@ -48,8 +48,8 @@ graph TD
     Examples --> Core
     FunctionSpace --> Compact
     FunctionSpace --> BinaryProduct
-    LocalCompact --> BinaryProduct
     LocalCompact --> Compact
+    LocalCompact --> BinaryProduct
     LocalFinite --> Countability
     Normal --> Countability
     Normal --> LocalCompact
