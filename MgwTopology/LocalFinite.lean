@@ -248,7 +248,7 @@ theorem LocallyFiniteFamily.sigma {F : Set (Set α)}
 locally-finite families. Encoded by the data directly. -/
 def SigmaLocallyFiniteBasis (ℬ : Set (Set α)) : Prop :=
   IsBasis ℬ ∧ (∀ B, B ∈ ℬ → T.IsOpen B) ∧
-  (∀ U, T.IsOpen U ↔ Topology.generatedBy ℬ U) ∧
+  (∀ U, T.IsOpen U ↔ ℬ.HasSubfamilyWhoseUnionIs U) ∧
   T.SigmaLocallyFiniteFamily ℬ
 
 /- source: topology.mg:220769 name: second_countable_implies_sigma_locally_finite_basis -/
@@ -283,7 +283,7 @@ theorem SigmaLocallyFiniteBasis.of_secondCountable (h : T.SecondCountable) :
 /-- If `ℬ` is a basis generating the topology `T`, then every open set `U`
 contains a basis element around each of its points. -/
 theorem basis_refines_of_generates {ℬ : Set (Set α)}
-    (_hℬ : IsBasis ℬ) (hgen : ∀ U, T.IsOpen U ↔ Topology.generatedBy ℬ U)
+    (_hℬ : IsBasis ℬ) (hgen : ∀ U, T.IsOpen U ↔ ℬ.HasSubfamilyWhoseUnionIs U)
     {U : Set α} (hU : T.IsOpen U) {x : α} (hxU : x ∈ U) :
     ∃ B, B ∈ ℬ ∧ x ∈ B ∧ B ⊆ U := by
   rw [hgen] at hU
