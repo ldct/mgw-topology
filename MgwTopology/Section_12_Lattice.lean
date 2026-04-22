@@ -1,8 +1,21 @@
 /-
-Example topologies and the finer/coarser relation.
+The finer/coarser relation on topologies.
 
-Corresponds to topology.mg §12 examples (discrete, indiscrete,
-finite-complement topology) and the ordering of topologies by inclusion.
+## Key definitions:
+
+- `Finer (T₁ T₂ : Topology α) : Prop`: `T₁` is finer than `T₂`
+- `discrete α` : the discrete topology on `α`
+- `indiscrete α` : the indiscrete topology on `α`
+
+## Key theorems
+
+- The discrete topology is finer than any topology.
+- The indiscrete topology is coarser than any topology.
+
+## Design decisions
+
+In Mathlib, we might use a lattice for this to have access to lattice theorems and notation.
+
 -/
 import MgwTopology.Section_12_Core
 

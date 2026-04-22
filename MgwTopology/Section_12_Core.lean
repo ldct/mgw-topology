@@ -1,7 +1,16 @@
 /-
 Core topology definitions.
 
-Corresponds to topology.mg §12-§13 (Topological Spaces, Basis for a Topology).
+## Key definitions
+
+- `Topology α`
+
+## Key theorems
+
+Basic theorems about the union and intersection of open sets.
+
+## Design decisions
+
 A topology on `X : Type u` is a collection of "open" subsets closed under
 finite intersection and arbitrary union, containing ∅ and univ.
 
