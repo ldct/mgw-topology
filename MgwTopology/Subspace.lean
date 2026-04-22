@@ -14,6 +14,22 @@ namespace Topology
 universe u
 variable {α : Type u} (T : Topology α)
 
+/- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
+/-- A set is open iff every point has a neighborhood inside it. -/
+theorem isOpen_of_local_nhd {U : Set α}
+    (h : ∀ x, x ∈ U → ∃ V, T.IsOpen V ∧ x ∈ V ∧ V ⊆ U) : T.IsOpen U := by
+  have hfam : T.IsOpen (⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U)) :=
+    T.isOpen_sUnion (fun _ hV => hV.1)
+  have heq : U = ⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U) := by
+    ext x
+    refine ⟨?_, ?_⟩
+    · intro hxU
+      obtain ⟨V, hV, hxV, hVU⟩ := h x hxU
+      exact ⟨V, ⟨hV, hVU⟩, hxV⟩
+    · rintro ⟨V, ⟨_, hVU⟩, hxV⟩
+      exact hVU hxV
+  rw [heq]; exact hfam
+
 /-- The subspace topology on a subset `Y : Set α`. Open sets of `Y` are
     intersections `Y ∩ U` where `U` is open in `α`. Modelled as a
     `Topology` on the subtype `{x // Y x}`. -/

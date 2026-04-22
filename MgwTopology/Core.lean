@@ -56,22 +56,6 @@ theorem isOpen_union {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
       · exact ⟨V, Or.inr rfl, hx⟩
   rw [heq] at hfam; exact hfam
 
-/- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
-/-- A set is open iff every point has a neighborhood inside it. -/
-theorem isOpen_of_local_nhd {U : Set α}
-    (h : ∀ x, x ∈ U → ∃ V, T.IsOpen V ∧ x ∈ V ∧ V ⊆ U) : T.IsOpen U := by
-  have hfam : T.IsOpen (⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U)) :=
-    T.isOpen_sUnion (fun _ hV => hV.1)
-  have heq : U = ⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U) := by
-    ext x
-    refine ⟨?_, ?_⟩
-    · intro hxU
-      obtain ⟨V, hV, hxV, hVU⟩ := h x hxU
-      exact ⟨V, ⟨hV, hVU⟩, hxV⟩
-    · rintro ⟨V, ⟨_, hVU⟩, hxV⟩
-      exact hVU hxV
-  rw [heq]; exact hfam
-
 /-! ### Neighborhoods. -/
 
 /-- `U` is an open neighborhood of `x` if `U` is open and contains `x`. -/
@@ -84,7 +68,7 @@ theorem nhd_inter {x : α} {U V : Set α}
     (hU : T.nhd x U) (hV : T.nhd x V) : T.nhd x (U ∩ V) :=
   ⟨T.isOpen_inter hU.1 hV.1, hU.2, hV.2⟩
 
-/-! ### Finite intersection of opens (core version). -/
+/-! ### Finite intersection of opens. -/
 
 /-- Intersection over a `Fin n`-indexed family of opens is open. Duplicated in
     `Compact.lean` but needed earlier for subbasis machinery. -/
