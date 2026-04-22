@@ -117,7 +117,17 @@ example : Topology ThreeElementSet where
     · left; exact Set.inter_empty _
     · right; trivial
   isOpen_sUnion := by
-    sorry
+    intro 𝒰 h
+    by_cases hex : ∃ U, U ∈ 𝒰 ∧ .a ∈ U
+    · right
+      obtain ⟨U, hU, ha⟩ := hex
+      exact ⟨U, hU, ha⟩
+    · left
+      ext x
+      refine ⟨fun ⟨U, hU, hx⟩ => ?_, fun h => h.elim⟩
+      rcases h U hU with rfl | ha
+      · exact hx
+      · exact absurd ⟨U, hU, ha⟩ hex
 
 end Topology
 end Mgw
