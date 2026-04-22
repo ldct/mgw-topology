@@ -13,6 +13,60 @@ namespace Topology
 universe u
 variable {α : Type u} (T : Topology α)
 
+/-- A set is closed iff its complement is open. -/
+def IsClosed (C : Set α) : Prop := T.IsOpen Cᶜ
+
+/-! ### §12 elementary closed-set lemmas. -/
+
+/- source: topology.mg:5200 name: X_is_closed -/
+/-- The whole space is closed. -/
+theorem isClosed_univ : T.IsClosed Set.univ := by
+  unfold IsClosed
+  rw [Set.compl_univ]; exact T.isOpen_empty
+
+/- source: topology.mg:5227 name: Empty_is_closed -/
+/-- The empty set is closed. -/
+theorem isClosed_empty : T.IsClosed (∅ : Set α) := by
+  unfold IsClosed
+  rw [Set.compl_empty]; exact T.isOpen_univ
+
+/- source: topology.mg:5185 name: closed_of_open_complement -/
+/-- If `U` is open, then its complement is closed. -/
+theorem isClosed_compl_of_isOpen {U : Set α} (hU : T.IsOpen U) :
+    T.IsClosed Uᶜ := by
+  unfold IsClosed
+  rw [Set.compl_compl]; exact hU
+
+/- source: topology.mg:5470 name: open_of_closed_complement -/
+/-- If `C` is closed, then its complement is open. -/
+theorem isOpen_compl_of_isClosed {C : Set α} (hC : T.IsClosed C) :
+    T.IsOpen Cᶜ := hC
+
+/- source: topology.mg:5253 name: closed_binintersect -/
+/-- Intersection of two closed sets is closed. -/
+theorem isClosed_inter {C D : Set α} (hC : T.IsClosed C) (hD : T.IsClosed D) :
+    T.IsClosed (C ∩ D) := by
+  unfold IsClosed
+  rw [Set.compl_inter]
+  exact T.isOpen_union hC hD
+
+/- source: topology.mg:5380 name: closed_binunion -/
+/-- Union of two closed sets is closed. -/
+theorem isClosed_union {C D : Set α} (hC : T.IsClosed C) (hD : T.IsClosed D) :
+    T.IsClosed (C ∪ D) := by
+  unfold IsClosed
+  rw [Set.compl_union]
+  exact T.isOpen_inter hC hD
+
+/-- Arbitrary intersection of closed sets is closed. -/
+theorem isClosed_sInter {𝒞 : Set (Set α)}
+    (h : ∀ C, C ∈ 𝒞 → T.IsClosed C) : T.IsClosed (⋂₀ 𝒞) := by
+  unfold IsClosed
+  rw [Set.compl_sInter_eq_sUnion_compl]
+  apply T.isOpen_sUnion
+  rintro W ⟨C, hC, rfl⟩
+  exact h C hC
+
 /-- The interior of `S` is the union of all open sets contained in `S`. -/
 def interior (S : Set α) : Set α :=
   ⋃₀ (fun U => T.IsOpen U ∧ U ⊆ S)
