@@ -14,6 +14,18 @@ namespace Topology
 universe u
 variable {α : Type u} (T : Topology α)
 
+/-! ### Neighborhoods. -/
+
+/-- `U` is an open neighborhood of `x` if `U` is open and contains `x`. -/
+def nhd (x : α) (U : Set α) : Prop := T.IsOpen U ∧ x ∈ U
+
+theorem nhd_univ (x : α) : T.nhd x Set.univ :=
+  ⟨T.isOpen_univ, trivial⟩
+
+theorem nhd_inter {x : α} {U V : Set α}
+    (hU : T.nhd x U) (hV : T.nhd x V) : T.nhd x (U ∩ V) :=
+  ⟨T.isOpen_inter hU.1 hV.1, hU.2, hV.2⟩
+
 /- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
 /- TODO(xuanji): this doesn't seem to be in Munkres -/
 /-- A set is open iff every point has a neighborhood inside it. -/

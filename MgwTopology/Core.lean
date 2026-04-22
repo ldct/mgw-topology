@@ -24,7 +24,7 @@ structure Topology (α : Type u) where
   isOpen_empty : IsOpen ∅
   isOpen_univ  : IsOpen Set.univ
 
-   -- This is a significant modification from Munkres's definition, but equivalent.
+   -- This is a significant modification from Munkres's definition, but equivalent (the hard direction is in `isOpen_iInter_fin_core`).
   isOpen_inter : ∀ {U V}, IsOpen U → IsOpen V → IsOpen (U ∩ V)
   isOpen_sUnion : ∀ {𝒰 : Set (Set α)}, (∀ U, U ∈ 𝒰 → IsOpen U) → IsOpen (⋃₀ 𝒰)
 
@@ -56,22 +56,9 @@ theorem isOpen_union {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
       · exact ⟨V, Or.inr rfl, hx⟩
   rw [heq] at hfam; exact hfam
 
-/-! ### Neighborhoods. -/
-
-/-- `U` is an open neighborhood of `x` if `U` is open and contains `x`. -/
-def nhd (x : α) (U : Set α) : Prop := T.IsOpen U ∧ x ∈ U
-
-theorem nhd_univ (x : α) : T.nhd x Set.univ :=
-  ⟨T.isOpen_univ, trivial⟩
-
-theorem nhd_inter {x : α} {U V : Set α}
-    (hU : T.nhd x U) (hV : T.nhd x V) : T.nhd x (U ∩ V) :=
-  ⟨T.isOpen_inter hU.1 hV.1, hU.2, hV.2⟩
-
 /-! ### Finite intersection of opens. -/
 
-/-- Intersection over a `Fin n`-indexed family of opens is open. Duplicated in
-    `Compact.lean` but needed earlier for subbasis machinery. -/
+/-- Intersection of a `Fin n`-indexed family of opens is open. -/
 theorem isOpen_iInter_fin_core {n : Nat} (f : Fin n → Set α)
     (hf : ∀ i, T.IsOpen (f i)) :
     T.IsOpen (fun x => ∀ i : Fin n, x ∈ f i) := by

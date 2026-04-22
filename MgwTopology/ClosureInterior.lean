@@ -13,10 +13,8 @@ namespace Topology
 universe u
 variable {α : Type u} (T : Topology α)
 
-/--
-A set is closed iff its complement is open.
-§17, p93: "A subset A of a topological space X is said to be *closed* if the set X - A is open."
--/
+/- §17, p93: "A subset A of a topological space X is said to be *closed* if the set X - A is open." -/
+/-- A set is closed iff its complement is open. -/
 def IsClosed (C : Set α) : Prop := T.IsOpen Cᶜ
 
 /-! ### Elementary closed-set lemmas / Theorem 17.1. -/
