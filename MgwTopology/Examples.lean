@@ -20,7 +20,7 @@ def discrete (α : Type u) : Topology α where
   IsOpen _ := True
   isOpen_empty := trivial
   isOpen_univ := trivial
-  isOpen_inter _ _ := trivial
+  isOpen_inter _ _ := this_does_not_exist
   isOpen_sUnion _ := trivial
 
 /-! ### The indiscrete topology ({∅, univ}). -/
