@@ -4,7 +4,7 @@ Example topologies and the finer/coarser relation.
 Corresponds to topology.mg §12 examples (discrete, indiscrete,
 finite-complement topology) and the ordering of topologies by inclusion.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 
 namespace Mgw
 namespace Topology

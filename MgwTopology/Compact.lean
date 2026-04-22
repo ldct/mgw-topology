@@ -5,7 +5,7 @@ Corresponds to topology.mg §26 (Compact Spaces). Only the core compactness
 lemmas needed by §29 Local Compactness are proved here — this is not a
 complete port of §26.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
 import MgwTopology.Subspace

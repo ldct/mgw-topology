@@ -3,7 +3,7 @@ Separation axioms: T1, Hausdorff, regular, normal.
 
 Corresponds to topology.mg §17 (Hausdorff / T1), §31, §32.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
 import MgwTopology.Subspace

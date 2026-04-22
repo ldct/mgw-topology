@@ -14,7 +14,7 @@ whose closures still cover) is left as a `sorry` — its Megalodon proof uses
 transfinite induction over a well-ordering, infrastructure we do not have
 in the Mathlib-free port.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
 import MgwTopology.Subspace

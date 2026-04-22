@@ -3,7 +3,7 @@ Connected spaces.
 
 Corresponds to topology.mg §23 (Connected Spaces), §25 (Components).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 
 namespace Mgw
 namespace Topology

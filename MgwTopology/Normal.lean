@@ -12,7 +12,7 @@ We skip Urysohn's lemma's real-valued conclusion and Tietze extension (both
 require ℝ), and the infinite-product counterexamples from §32.
 
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
 import MgwTopology.Subspace

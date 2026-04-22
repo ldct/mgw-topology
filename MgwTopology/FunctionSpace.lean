@@ -10,7 +10,7 @@ analogue. The "continuous function space" is modeled as a subset
 subspace topology obtained from the compact-convergence topology on
 `α → β`.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.Basis
 import MgwTopology.Continuous
 import MgwTopology.Subspace

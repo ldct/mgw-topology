@@ -1,8 +1,8 @@
 -- Root of the MgwTopology library. Real-free topology port of topology.mg.
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.Basis
-import MgwTopology.Examples
+import MgwTopology.Chapter_12_Examples
 import MgwTopology.Order
 import MgwTopology.Subspace
 import MgwTopology.Continuous

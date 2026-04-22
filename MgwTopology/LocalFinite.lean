@@ -8,7 +8,7 @@ mention real numbers or the full Nagata-Smirnov theorem.
 A family of subsets `F : Set (Set α)` is locally finite if every point has
 an open neighborhood meeting only finitely many members of `F`.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
 import MgwTopology.Basis
