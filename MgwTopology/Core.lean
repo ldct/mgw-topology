@@ -23,6 +23,8 @@ structure Topology (α : Type u) where
   IsOpen : Set α → Prop
   isOpen_empty : IsOpen ∅
   isOpen_univ  : IsOpen Set.univ
+
+   -- This is a significant modification from Munkres's definition, but equivalent.
   isOpen_inter : ∀ {U V}, IsOpen U → IsOpen V → IsOpen (U ∩ V)
   isOpen_sUnion : ∀ {𝒰 : Set (Set α)}, (∀ U, U ∈ 𝒰 → IsOpen U) → IsOpen (⋃₀ 𝒰)
 
@@ -31,12 +33,6 @@ namespace Topology
 variable {α : Type u} (T : Topology α)
 
 /-! ### §12 elementary open-set lemmas. -/
-
-/- source: topology.mg:5066 name: union_open -/
-/-- The union of any family of open sets is open. -/
-theorem isOpen_sUnion_family {𝒰 : Set (Set α)}
-    (h : ∀ U, U ∈ 𝒰 → T.IsOpen U) : T.IsOpen (⋃₀ 𝒰) :=
-  T.isOpen_sUnion h
 
 /- source: topology.mg:5586 name: binunion_open -/
 /-- The union of two open sets is open. -/
@@ -59,12 +55,6 @@ theorem isOpen_union {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
       · exact ⟨U, Or.inl rfl, hx⟩
       · exact ⟨V, Or.inr rfl, hx⟩
   rw [heq] at hfam; exact hfam
-
-/- source: topology.mg:5089 name: binintersect_open -/
-/-- The intersection of two open sets is open. (Alias of the structure field.) -/
-theorem isOpen_inter' {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
-    T.IsOpen (U ∩ V) := T.isOpen_inter hU hV
-
 
 /- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
 /-- A set is open iff every point has a neighborhood inside it. -/
