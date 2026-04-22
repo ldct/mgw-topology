@@ -15,6 +15,7 @@ universe u
 variable {α : Type u} (T : Topology α)
 
 /- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
+/- TODO(xuanji): this doesn't seem to be in Munkres -/
 /-- A set is open iff every point has a neighborhood inside it. -/
 theorem isOpen_of_local_nhd {U : Set α}
     (h : ∀ x, x ∈ U → ∃ V, T.IsOpen V ∧ x ∈ V ∧ V ⊆ U) : T.IsOpen U := by
