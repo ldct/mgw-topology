@@ -3,7 +3,7 @@ Binary product topology (X × Y).
 
 Corresponds to topology.mg §15 (The Product Topology on X × Y).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.Basis
 import MgwTopology.Continuous
 import MgwTopology.ClosedAndLimit

@@ -5,7 +5,7 @@ Corresponds roughly to topology.mg §17, but we forward-reference the
 elementary identities here because §12-§16 need them in a few places
 (e.g. the subspace closure lemma).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 
 namespace Mgw
 namespace Topology

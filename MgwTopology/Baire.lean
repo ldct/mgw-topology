@@ -3,7 +3,7 @@ Baire spaces and G_δ / F_σ sets.
 
 Corresponds to topology.mg §48 (Baire Spaces).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.Subspace
 import MgwTopology.Countability

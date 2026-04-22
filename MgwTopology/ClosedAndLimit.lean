@@ -5,7 +5,7 @@ Corresponds to topology.mg §17. Builds on `ClosureInterior.lean` with
 material about limit points, Hausdorff, T1, and the closure =
 set ∪ limit-points characterization.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.Subspace
 

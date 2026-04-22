@@ -3,10 +3,10 @@ The subspace topology.
 
 Corresponds to topology.mg §16 (Subspace Topology).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.Basis
-import MgwTopology.Examples
+import MgwTopology.Chapter_12_Examples
 
 namespace Mgw
 namespace Topology

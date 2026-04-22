@@ -3,10 +3,10 @@ Continuous maps.
 
 Corresponds to topology.mg §18 (Continuous Functions).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.Basis
 import MgwTopology.ClosureInterior
-import MgwTopology.Examples
+import MgwTopology.Chapter_12_Examples
 import MgwTopology.Subspace
 
 namespace Mgw

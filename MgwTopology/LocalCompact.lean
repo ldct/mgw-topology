@@ -16,7 +16,7 @@ Hausdorff + compact ⇒ closed, point-compact separation). We do **not**
 attempt the one-point compactification construction proof — it is only
 defined.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.Compact
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit

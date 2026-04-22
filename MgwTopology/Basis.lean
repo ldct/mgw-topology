@@ -3,7 +3,7 @@ Bases and subbases for a topology.
 
 Corresponds to topology.mg §13 (Basis for a Topology).
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 
 namespace Mgw
 

@@ -4,7 +4,7 @@ Countability axioms.
 Corresponds to topology.mg §30 (Countability Axioms).
 First- and second-countability, separability, Lindelöf.
 -/
-import MgwTopology.Core
+import MgwTopology.Section_12_Core
 import MgwTopology.Basis
 import MgwTopology.ClosureInterior
 import MgwTopology.ClosedAndLimit
