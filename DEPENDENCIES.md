@@ -21,7 +21,7 @@ graph TD
     Continuous[Continuous]
     Section_12_Core[Section_12_Core]
     Countability[Countability]
-    Chapter_12_Examples[Chapter_12_Examples]
+    Section_12_Lattice[Section_12_Lattice]
     FunctionSpace[FunctionSpace]
     LocalCompact[LocalCompact]
     LocalFinite[LocalFinite]
@@ -45,7 +45,7 @@ graph TD
     Continuous --> Subspace
     Section_12_Core --> SetLib
     Countability --> Compact
-    Chapter_12_Examples --> Section_12_Core
+    Section_12_Lattice --> Section_12_Core
     FunctionSpace --> Compact
     FunctionSpace --> BinaryProduct
     LocalCompact --> Compact
@@ -61,7 +61,7 @@ graph TD
     Separation --> BinaryProduct
     Subspace --> Basis
     Subspace --> ClosureInterior
-    Subspace --> Chapter_12_Examples
+    Subspace --> Section_12_Lattice
 
     click Baire "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Baire.lean"
     click Basis "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Basis.lean"
@@ -73,7 +73,7 @@ graph TD
     click Continuous "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Continuous.lean"
     click Section_12_Core "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Section_12_Core.lean"
     click Countability "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Countability.lean"
-    click Chapter_12_Examples "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Chapter_12_Examples.lean"
+    click Section_12_Lattice "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Section_12_Lattice.lean"
     click FunctionSpace "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/FunctionSpace.lean"
     click LocalCompact "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/LocalCompact.lean"
     click LocalFinite "https://github.com/ldct/mgw-topology/blob/main/MgwTopology/LocalFinite.lean"
@@ -93,7 +93,7 @@ graph TD
 - **[Basis](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Basis.lean)** (L2) — Bases and subbases for a topology.
 - **[ClosureInterior](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/ClosureInterior.lean)** (L2) — Closure, interior, and boundary operators.
 - **[Connected](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Connected.lean)** (L2) — Connected spaces.
-- **[Chapter_12_Examples](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Chapter_12_Examples.lean)** (L2) — Example topologies and the finer/coarser relation.
+- **[Section_12_Lattice](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Section_12_Lattice.lean)** (L2) — Example topologies and the finer/coarser relation.
 - **[Order](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Order.lean)** (L3) — The order topology.
 - **[Subspace](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/Subspace.lean)** (L3) — The subspace topology.
 - **[ClosedAndLimit](https://github.com/ldct/mgw-topology/blob/main/MgwTopology/ClosedAndLimit.lean)** (L4) — Closed sets and limit points.

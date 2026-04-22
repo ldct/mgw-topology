@@ -6,7 +6,7 @@ Corresponds to topology.mg §18 (Continuous Functions).
 import MgwTopology.Section_12_Core
 import MgwTopology.Basis
 import MgwTopology.ClosureInterior
-import MgwTopology.Chapter_12_Examples
+import MgwTopology.Section_12_Lattice
 import MgwTopology.Subspace
 
 namespace Mgw

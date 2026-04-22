@@ -6,7 +6,7 @@ Corresponds to topology.mg §16 (Subspace Topology).
 import MgwTopology.Section_12_Core
 import MgwTopology.ClosureInterior
 import MgwTopology.Basis
-import MgwTopology.Chapter_12_Examples
+import MgwTopology.Section_12_Lattice
 
 namespace Mgw
 namespace Topology
