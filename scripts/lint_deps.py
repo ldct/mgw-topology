@@ -36,13 +36,19 @@ def transitive_reduction(graph: dict[str, set[str]]) -> dict[str, set[str]]:
     # For each node, compute full set of transitive descendants (via DFS).
     cache: dict[str, set[str]] = {}
 
+    visiting: set[str] = set()
+
     def reachable(node: str) -> set[str]:
         if node in cache:
             return cache[node]
+        if node in visiting:
+            return set()  # cycle detected
+        visiting.add(node)
         result: set[str] = set()
         for child in graph.get(node, set()):
             result.add(child)
             result |= reachable(child)
+        visiting.discard(node)
         cache[node] = result
         return result
 
@@ -106,6 +112,27 @@ def main() -> int:
         errors.append(f"Modules in Lean but not in DEPENDENCIES.md: {sorted(missing_from_md)}")
     if extra_in_md:
         errors.append(f"Modules in DEPENDENCIES.md but not in Lean: {sorted(extra_in_md)}")
+
+    # Check for import cycles
+    def _find_cycle(node: str, path: list[str], visited: set[str]) -> list[str] | None:
+        if node in path:
+            return path[path.index(node):] + [node]
+        if node in visited:
+            return None
+        visited.add(node)
+        path.append(node)
+        for dep in lean_graph.get(node, set()):
+            cycle = _find_cycle(dep, path, visited)
+            if cycle:
+                return cycle
+        path.pop()
+        return None
+
+    for mod in sorted(lean_graph):
+        cycle = _find_cycle(mod, [], set())
+        if cycle:
+            errors.append(f"Import cycle detected: {' -> '.join(cycle)}")
+            break
 
     # Check edges (transitive reduction)
     reduced = transitive_reduction(lean_graph)
