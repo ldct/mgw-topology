@@ -32,7 +32,6 @@ def indiscrete (α : Type u) : Topology α where
   isOpen_empty := Or.inl rfl
   isOpen_univ := Or.inr rfl
   isOpen_inter := by
-    classical
     intro U V hU hV
     rcases hU with rfl | rfl
     · left; exact Set.empty_inter V
@@ -40,7 +39,6 @@ def indiscrete (α : Type u) : Topology α where
     · left; exact Set.inter_empty _
     · right; exact Set.inter_univ _
   isOpen_sUnion := by
-    classical
     intro 𝒰 h𝒰
     -- Either some member equals univ, in which case sUnion = univ,
     -- or every member is empty, in which case sUnion = empty.
