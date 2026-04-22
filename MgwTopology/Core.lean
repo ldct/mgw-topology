@@ -23,6 +23,8 @@ structure Topology (α : Type u) where
   IsOpen : Set α → Prop
   isOpen_empty : IsOpen ∅
   isOpen_univ  : IsOpen Set.univ
+
+   -- This is a significant modification from Munkres's definition, but equivalent.
   isOpen_inter : ∀ {U V}, IsOpen U → IsOpen V → IsOpen (U ∩ V)
   isOpen_sUnion : ∀ {𝒰 : Set (Set α)}, (∀ U, U ∈ 𝒰 → IsOpen U) → IsOpen (⋃₀ 𝒰)
 
@@ -30,16 +32,7 @@ namespace Topology
 
 variable {α : Type u} (T : Topology α)
 
-/-- A set is closed iff its complement is open. -/
-def IsClosed (C : Set α) : Prop := T.IsOpen Cᶜ
-
 /-! ### §12 elementary open-set lemmas. -/
-
-/- source: topology.mg:5066 name: union_open -/
-/-- The union of any family of open sets is open. -/
-theorem isOpen_sUnion_family {𝒰 : Set (Set α)}
-    (h : ∀ U, U ∈ 𝒰 → T.IsOpen U) : T.IsOpen (⋃₀ 𝒰) :=
-  T.isOpen_sUnion h
 
 /- source: topology.mg:5586 name: binunion_open -/
 /-- The union of two open sets is open. -/
@@ -63,78 +56,6 @@ theorem isOpen_union {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
       · exact ⟨V, Or.inr rfl, hx⟩
   rw [heq] at hfam; exact hfam
 
-/- source: topology.mg:5089 name: binintersect_open -/
-/-- The intersection of two open sets is open. (Alias of the structure field.) -/
-theorem isOpen_inter' {U V : Set α} (hU : T.IsOpen U) (hV : T.IsOpen V) :
-    T.IsOpen (U ∩ V) := T.isOpen_inter hU hV
-
-/-! ### §12 elementary closed-set lemmas. -/
-
-/- source: topology.mg:5200 name: X_is_closed -/
-/-- The whole space is closed. -/
-theorem isClosed_univ : T.IsClosed Set.univ := by
-  unfold IsClosed
-  rw [Set.compl_univ]; exact T.isOpen_empty
-
-/- source: topology.mg:5227 name: Empty_is_closed -/
-/-- The empty set is closed. -/
-theorem isClosed_empty : T.IsClosed (∅ : Set α) := by
-  unfold IsClosed
-  rw [Set.compl_empty]; exact T.isOpen_univ
-
-/- source: topology.mg:5185 name: closed_of_open_complement -/
-/-- If `U` is open, then its complement is closed. -/
-theorem isClosed_compl_of_isOpen {U : Set α} (hU : T.IsOpen U) :
-    T.IsClosed Uᶜ := by
-  unfold IsClosed
-  rw [Set.compl_compl]; exact hU
-
-/- source: topology.mg:5470 name: open_of_closed_complement -/
-/-- If `C` is closed, then its complement is open. -/
-theorem isOpen_compl_of_isClosed {C : Set α} (hC : T.IsClosed C) :
-    T.IsOpen Cᶜ := hC
-
-/- source: topology.mg:5253 name: closed_binintersect -/
-/-- Intersection of two closed sets is closed. -/
-theorem isClosed_inter {C D : Set α} (hC : T.IsClosed C) (hD : T.IsClosed D) :
-    T.IsClosed (C ∩ D) := by
-  unfold IsClosed
-  rw [Set.compl_inter]
-  exact T.isOpen_union hC hD
-
-/- source: topology.mg:5380 name: closed_binunion -/
-/-- Union of two closed sets is closed. -/
-theorem isClosed_union {C D : Set α} (hC : T.IsClosed C) (hD : T.IsClosed D) :
-    T.IsClosed (C ∪ D) := by
-  unfold IsClosed
-  rw [Set.compl_union]
-  exact T.isOpen_inter hC hD
-
-/-- Arbitrary intersection of closed sets is closed. -/
-theorem isClosed_sInter {𝒞 : Set (Set α)}
-    (h : ∀ C, C ∈ 𝒞 → T.IsClosed C) : T.IsClosed (⋂₀ 𝒞) := by
-  unfold IsClosed
-  rw [Set.compl_sInter_eq_sUnion_compl]
-  apply T.isOpen_sUnion
-  rintro W ⟨C, hC, rfl⟩
-  exact h C hC
-
-/- source: topology.mg:68712 name: topology_elem_of_local_neighborhoods -/
-/-- A set is open iff every point has a neighborhood inside it. -/
-theorem isOpen_of_local_nhd {U : Set α}
-    (h : ∀ x, x ∈ U → ∃ V, T.IsOpen V ∧ x ∈ V ∧ V ⊆ U) : T.IsOpen U := by
-  have hfam : T.IsOpen (⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U)) :=
-    T.isOpen_sUnion (fun _ hV => hV.1)
-  have heq : U = ⋃₀ (fun V => T.IsOpen V ∧ V ⊆ U) := by
-    ext x
-    refine ⟨?_, ?_⟩
-    · intro hxU
-      obtain ⟨V, hV, hxV, hVU⟩ := h x hxU
-      exact ⟨V, ⟨hV, hVU⟩, hxV⟩
-    · rintro ⟨V, ⟨_, hVU⟩, hxV⟩
-      exact hVU hxV
-  rw [heq]; exact hfam
-
 /-! ### Neighborhoods. -/
 
 /-- `U` is an open neighborhood of `x` if `U` is open and contains `x`. -/
@@ -147,7 +68,7 @@ theorem nhd_inter {x : α} {U V : Set α}
     (hU : T.nhd x U) (hV : T.nhd x V) : T.nhd x (U ∩ V) :=
   ⟨T.isOpen_inter hU.1 hV.1, hU.2, hV.2⟩
 
-/-! ### Finite intersection of opens (core version). -/
+/-! ### Finite intersection of opens. -/
 
 /-- Intersection over a `Fin n`-indexed family of opens is open. Duplicated in
     `Compact.lean` but needed earlier for subbasis machinery. -/
