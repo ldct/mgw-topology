@@ -99,5 +99,25 @@ theorem isOpen_iInter_fin_of_subbasis {S : Set (Set α)}
     T.IsOpen (fun x => ∀ i : Fin n, x ∈ f i) :=
   T.isOpen_iInter_fin_core f (fun i => hS (f i) (hf i))
 
+inductive ThreeElementSet : Type where
+  | a
+  | b
+  | c
+  deriving DecidableEq
+
+example : Topology ThreeElementSet where
+  IsOpen s := s = ∅ ∨ .a ∈ s
+  isOpen_empty := by grind
+  isOpen_univ := by right; trivial
+  isOpen_inter := by
+    intro U V hU hV
+    rcases hU with rfl | hU
+    · left; exact Set.empty_inter V
+    rcases hV with rfl | hV
+    · left; exact Set.inter_empty _
+    · right; trivial
+  isOpen_sUnion := by
+    sorry
+
 end Topology
 end Mgw

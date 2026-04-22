@@ -30,7 +30,7 @@ def FirstCountable : Prop :=
 /-- Second countable: there is a countable basis. -/
 def SecondCountable : Prop :=
   ∃ ℬ : Set (Set α), ℬ.Countable ∧ IsBasis ℬ ∧
-    ∀ U, T.IsOpen U ↔ Topology.generatedBy ℬ U
+    ∀ U, T.IsOpen U ↔ ℬ.HasSubfamilyWhoseUnionIs U
 
 /-- A set `D` is dense iff every nonempty open set meets `D`. -/
 def Dense (D : Set α) : Prop :=
