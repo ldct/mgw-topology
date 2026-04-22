@@ -46,8 +46,8 @@ graph TD
     Core --> SetLib
     Countability --> Compact
     Examples --> Core
-    FunctionSpace --> BinaryProduct
     FunctionSpace --> Compact
+    FunctionSpace --> BinaryProduct
     LocalCompact --> BinaryProduct
     LocalCompact --> Compact
     LocalFinite --> Countability
