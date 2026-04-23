@@ -802,13 +802,8 @@ theorem pos_of_not_equiv_zero {x : MyPrereal} (H : ¬(x ≈ 0)) :
     exact Rat.le_trans htri hh
   -- So |x M| - δ/2 ≤ |x n|, and |x M| > δ, hence |x n| > δ/2.
   have h2 : absRat (x M) - δ / 2 ≤ absRat (x n) := Rat.sub_le_of_le_add htri2
-  have h3 : δ - δ / 2 < absRat (x M) - δ / 2 := by
-    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg]
-    exact Rat.add_lt_add_right.mpr HM
-  -- δ - δ/2 = δ/2
-  have h4 : δ - δ / 2 = δ / 2 := by have hsum := half_add_half δ; grind
-  rw [h4] at h3
-  exact Rat.lt_of_lt_of_le h3 h2
+  have hsum := half_add_half δ
+  grind
 
 /-- A non-zero pre-real has Cauchy reciprocal. -/
 theorem isCauchy_inv {x : MyPrereal} (H : ¬(x ≈ 0)) :
@@ -1285,17 +1280,9 @@ theorem not_isPos_of_equiv_zero {x : MyPrereal} (hx : x ≈ 0) : ¬ IsPos x := b
     exact this.2
   -- δ ≤ x (max N M) ≤ δ/2, so δ ≤ δ/2, so δ/2 ≤ 0, so δ ≤ 0, contradiction
   have hδ : δ ≤ δ / 2 := Rat.le_trans hbnd1 hxle
-  -- δ/2 - δ = -δ/2 ≤ 0
-  -- δ ≤ δ/2 means δ - δ/2 ≤ 0, but δ - δ/2 = δ/2 (since δ/2 + δ/2 = δ)
-  have hδ2 : δ / 2 ≤ 0 := by
-    have h1 : δ - δ / 2 ≤ δ / 2 - δ / 2 := by
-      rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg]
-      exact Rat.add_le_add_right.mpr hδ
-    rw [Rat.sub_self] at h1
-    have h2 : δ - δ / 2 = δ / 2 := by have hsum := half_add_half δ; grind
-    rw [h2] at h1; exact h1
-  -- δ/2 > 0 and δ/2 ≤ 0: contradiction
-  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le (half_pos hδpos) hδ2)
+  have hsum := half_add_half δ
+  have hpos := half_pos hδpos
+  grind
 
 /-- IsPos respects equivalence. -/
 theorem isPos_quotient {x x' : MyPrereal} (h : x ≈ x') (hx : IsPos x) : IsPos x' := by
@@ -1310,21 +1297,9 @@ theorem isPos_quotient {x x' : MyPrereal} (h : x ≈ x') (hx : IsPos x) : IsPos 
   have habs2 := absRat_le_iff.mp habs
   -- (x n - x' n) ≤ δ/2 and -(δ/2) ≤ (x n - x' n)
   -- so x' n ≥ x n - δ/2 ≥ δ - δ/2 = δ/2
-  have hkey : x n - δ / 2 ≤ x' n := by
-    have h1 : x n - x' n ≤ δ / 2 := habs2.2
-    have h2 : (x n - x' n) + (x' n - δ / 2) ≤ δ / 2 + (x' n - δ / 2) :=
-      Rat.add_le_add_right.mpr h1
-    have hl : (x n - x' n) + (x' n - δ / 2) = x n - δ / 2 := by grind
-    have hr : δ / 2 + (x' n - δ / 2) = x' n := by grind
-    rw [hl, hr] at h2; exact h2
-  -- δ - δ/2 = δ/2
-  have hδ_minus : δ - δ / 2 = δ / 2 := by have hsum := half_add_half δ; grind
-  -- x n - δ/2 ≥ δ - δ/2 = δ/2
-  have hsubtract : δ - δ / 2 ≤ x n - δ / 2 := by
-    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg]
-    exact Rat.add_le_add_right.mpr hxn
-  rw [hδ_minus] at hsubtract
-  exact Rat.le_trans hsubtract hkey
+  have h1 : x n - x' n ≤ δ / 2 := habs2.2
+  have hsum := half_add_half δ
+  grind
 
 /-- A pre-real is non-negative if it is positive or equivalent to zero. -/
 def IsNonneg (x : MyPrereal) : Prop := IsPos x ∨ x ≈ 0
@@ -1450,11 +1425,8 @@ private theorem isPos_add_equiv_zero {x y : MyPrereal} (hxp : IsPos x) (hy0 : y 
   rw [hsuby] at hyn_abs
   have hyn_lb : -(δ / 2) ≤ y n := (absRat_le_iff.mp hyn_abs).1
   show δ / 2 ≤ x n + y n
-  have h1 : δ + -(δ / 2) ≤ x n + -(δ / 2) := Rat.add_le_add_right.mpr hxn
-  have h2 : x n + -(δ / 2) ≤ x n + y n := Rat.add_le_add_left.mpr hyn_lb
-  have h3 : δ + -(δ / 2) = δ / 2 := by have hsum := half_add_half δ; grind
-  have hcomb := Rat.le_trans h1 h2
-  rw [h3] at hcomb; exact hcomb
+  have hsum := half_add_half δ
+  grind
 
 /-- Sum of two non-negatives is non-negative. -/
 theorem IsNonneg.add {x y : MyPrereal} (hx : IsNonneg x) (hy : IsNonneg y) :
@@ -1629,26 +1601,8 @@ theorem isNonneg_neg_of_not_isNonneg {x : MyPrereal} (hx : ¬ IsNonneg x) :
   -- From -(δ/2) ≤ x R - x n: x n - x R ≤ δ/2, i.e., x n ≤ x R + δ/2.
   -- We have x R < -δ, so x R + δ/2 < -δ + δ/2 = -δ/2. So x n < -δ/2. Hence -x n > δ/2.
   have hbnd3 : -(δ / 2) ≤ x R - x n := (absRat_le_iff.mp hbnd).1
-  -- x n ≤ x R + δ/2 (from -(δ/2) ≤ x R - x n)
-  have hxn_upper : x n ≤ x R + δ / 2 := by
-    -- -(δ/2) ≤ x R - x n means x n - x R ≤ δ/2 (wait, no) — actually -(δ/2) ≤ x R - x n means
-    -- x n + -(δ/2) ≤ x R, i.e., x n ≤ x R + δ/2.
-    -- Add x n + δ/2 to both sides: -(δ/2) + (x n + δ/2) ≤ (x R - x n) + (x n + δ/2)
-    have h1 : -(δ/2) + (x n + δ/2) ≤ (x R - x n) + (x n + δ/2) :=
-      Rat.add_le_add_right.mpr hbnd3
-    have hl : -(δ/2) + (x n + δ/2) = x n := by grind
-    have hr : (x R - x n) + (x n + δ/2) = x R + δ/2 := by grind
-    rw [hl, hr] at h1; exact h1
-  -- x R + δ/2 < -δ + δ/2
-  have hxR_plus : x R + δ / 2 < -δ + δ / 2 := Rat.add_lt_add_right.mpr hxR_neg
-  -- -δ + δ/2 = -(δ/2)
-  have hneg_half : -δ + δ / 2 = -(δ / 2) := by have hsum := half_add_half δ; grind
-  rw [hneg_half] at hxR_plus
-  have hxn_strict : x n < -(δ / 2) := Rat.lt_of_le_of_lt hxn_upper hxR_plus
-  -- Goal: δ/2 ≤ -x n
-  show δ / 2 ≤ -(x n)
-  have : -(-(δ/2)) ≤ -(x n) := Rat.neg_le_neg (Rat.le_of_lt hxn_strict)
-  rw [Rat.neg_neg] at this; exact this
+  have hsum := half_add_half δ
+  show δ / 2 ≤ -(x n); grind
 
 end MyPrereal
 
