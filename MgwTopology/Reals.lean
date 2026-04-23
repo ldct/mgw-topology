@@ -1441,4 +1441,770 @@ end MyReal
 
 end Field
 
+/-! ## Section 5 — Order on `MyReal`.
+
+We define `IsPos` and `IsNonneg` on pre-reals, lift `IsNonneg` to `MyReal`,
+derive `≤` and `<`, prove the linear-order properties, and establish the
+Archimedean property. -/
+
+section Order
+
+namespace MyPrereal
+
+/-- A pre-real is positive iff it is eventually bounded below by a positive
+rational. -/
+def IsPos (x : MyPrereal) : Prop :=
+  ∃ δ : Rat, 0 < δ ∧ ∃ N : Nat, ∀ n, N ≤ n → δ ≤ x n
+
+/-- A positive pre-real is eventually positive. -/
+theorem pos_of_isPos {x : MyPrereal} (hx : IsPos x) :
+    ∃ N, ∀ n, N ≤ n → 0 < x n := by
+  rcases hx with ⟨δ, hδpos, N, HN⟩
+  exact ⟨N, fun n hn => Rat.lt_of_lt_of_le hδpos (HN n hn)⟩
+
+/-- A pre-real equivalent to zero is not positive. -/
+theorem not_isPos_of_equiv_zero {x : MyPrereal} (hx : x ≈ 0) : ¬ IsPos x := by
+  intro ⟨δ, hδpos, N, HN⟩
+  rcases hx (δ / 2) (half_pos hδpos) with ⟨M, HM⟩
+  have hmax := Nat.le_max_left N M
+  have hmaxM := Nat.le_max_right N M
+  have hbnd1 : δ ≤ x (max N M) := HN _ hmax
+  have hbnd2 : absRat (x (max N M) - (0 : MyPrereal) (max N M)) ≤ δ / 2 := HM _ hmaxM
+  -- x (max N M) - 0 = x (max N M)
+  have heq : x (max N M) - (0 : MyPrereal) (max N M) = x (max N M) := by
+    show x (max N M) - 0 = x (max N M)
+    rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [heq] at hbnd2
+  -- |x (max N M)| ≤ δ/2 and δ ≤ x (max N M)
+  -- So x (max N M) ≤ δ/2 (from absRat ≤ δ/2)
+  have hxle : x (max N M) ≤ δ / 2 := by
+    have := absRat_le_iff.mp hbnd2
+    exact this.2
+  -- δ ≤ x (max N M) ≤ δ/2, so δ ≤ δ/2, so δ/2 ≤ 0, so δ ≤ 0, contradiction
+  have hδ : δ ≤ δ / 2 := Rat.le_trans hbnd1 hxle
+  -- δ/2 - δ = -δ/2 ≤ 0
+  -- δ ≤ δ/2 means δ - δ/2 ≤ 0, but δ - δ/2 = δ/2 (since δ/2 + δ/2 = δ)
+  have hδ2 : δ / 2 ≤ 0 := by
+    have h1 : δ - δ / 2 ≤ δ / 2 - δ / 2 := by
+      rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg]
+      exact Rat.add_le_add_right.mpr hδ
+    rw [Rat.sub_self] at h1
+    have h2 : δ - δ / 2 = δ / 2 := by
+      have hsum := half_add_half δ
+      rw [Rat.sub_eq_add_neg]
+      have hh : δ + -(δ / 2) = (δ / 2 + δ / 2) + -(δ / 2) := by rw [hsum]
+      rw [hh, Rat.add_assoc, Rat.add_neg_cancel, Rat.add_zero]
+    rw [h2] at h1; exact h1
+  -- δ/2 > 0 and δ/2 ≤ 0: contradiction
+  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le (half_pos hδpos) hδ2)
+
+/-- IsPos respects equivalence. -/
+theorem isPos_quotient {x x' : MyPrereal} (h : x ≈ x') (hx : IsPos x) : IsPos x' := by
+  rcases hx with ⟨δ, hδpos, N, HN⟩
+  rcases h (δ / 2) (half_pos hδpos) with ⟨M, HM⟩
+  refine ⟨δ / 2, half_pos hδpos, max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  -- |x n - x' n| ≤ δ/2 and δ ≤ x n
+  have habs := HM n hM
+  have hxn := HN n hN
+  have habs2 := absRat_le_iff.mp habs
+  -- (x n - x' n) ≤ δ/2 and -(δ/2) ≤ (x n - x' n)
+  -- so x' n ≥ x n - δ/2 ≥ δ - δ/2 = δ/2
+  have hkey : x n - δ / 2 ≤ x' n := by
+    -- from x n - x' n ≤ δ/2: subtract x n, negate
+    -- x n - x' n ≤ δ/2 → -x' n ≤ δ/2 - x n → x n - δ/2 ≤ x' n
+    have h1 : x n - x' n ≤ δ / 2 := habs2.2
+    -- Add x' n - δ/2 to both sides
+    -- (x n - x' n) + (x' n - δ/2) ≤ δ/2 + (x' n - δ/2)
+    have h2 : (x n - x' n) + (x' n - δ / 2) ≤ δ / 2 + (x' n - δ / 2) :=
+      Rat.add_le_add_right.mpr h1
+    -- LHS = x n - δ/2, RHS = x' n
+    have hl : (x n - x' n) + (x' n - δ / 2) = x n - δ / 2 := by
+      rw [Rat.sub_eq_add_neg (x n), Rat.sub_eq_add_neg (x' n), Rat.add_assoc,
+          ← Rat.add_assoc (-x' n), Rat.neg_add_cancel, Rat.zero_add,
+          ← Rat.sub_eq_add_neg]
+    have hr : δ / 2 + (x' n - δ / 2) = x' n := by
+      rw [Rat.sub_eq_add_neg, ← Rat.add_assoc, Rat.add_comm (δ / 2) (x' n),
+          Rat.add_assoc, Rat.add_neg_cancel, Rat.add_zero]
+    rw [hl, hr] at h2; exact h2
+  -- δ - δ/2 = δ/2
+  have hδ_minus : δ - δ / 2 = δ / 2 := by
+    have hsum := half_add_half δ
+    rw [Rat.sub_eq_add_neg]
+    have hh : δ + -(δ / 2) = (δ / 2 + δ / 2) + -(δ / 2) := by rw [hsum]
+    rw [hh, Rat.add_assoc, Rat.add_neg_cancel, Rat.add_zero]
+  -- x n - δ/2 ≥ δ - δ/2 = δ/2
+  have hsubtract : δ - δ / 2 ≤ x n - δ / 2 := by
+    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg]
+    exact Rat.add_le_add_right.mpr hxn
+  rw [hδ_minus] at hsubtract
+  exact Rat.le_trans hsubtract hkey
+
+/-- A pre-real is non-negative if it is positive or equivalent to zero. -/
+def IsNonneg (x : MyPrereal) : Prop := IsPos x ∨ x ≈ 0
+
+theorem IsNonneg_of_equiv_zero {x : MyPrereal} (hx : x ≈ 0) : IsNonneg x := Or.inr hx
+
+/-- A pre-real eventually bounded below by 0 is non-negative. -/
+theorem IsNonneg_of_nonneg {x : MyPrereal} (N : Nat) (hx : ∀ n, N ≤ n → 0 ≤ x n) :
+    IsNonneg x := by
+  classical
+  by_cases h : x ≈ 0
+  · exact IsNonneg_of_equiv_zero h
+  · rcases pos_of_not_equiv_zero h with ⟨δ, hδpos, M, HM⟩
+    left
+    refine ⟨δ, hδpos, max N M, fun n hn => ?_⟩
+    have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+    have hM' : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+    have hxn0 : 0 ≤ x n := hx n hN
+    have hxnabs : absRat (x n) = x n := absRat_of_nonneg hxn0
+    have hδlt : δ < x n := by
+      have := HM n hM'
+      rw [hxnabs] at this; exact this
+    exact Rat.le_of_lt hδlt
+
+@[simp] theorem zero_nonneg : IsNonneg 0 := Or.inr (R_refl _)
+
+@[simp] theorem one_pos : IsPos (1 : MyPrereal) := by
+  refine ⟨1, by decide, 0, fun _ _ => ?_⟩
+  show (1 : Rat) ≤ 1; exact Rat.le_refl
+
+@[simp] theorem one_nonneg : IsNonneg (1 : MyPrereal) := Or.inl one_pos
+
+/-- IsNonneg respects equivalence. -/
+theorem isNonneg_quotient {x x' : MyPrereal} (h : x ≈ x') (hx : IsNonneg x) :
+    IsNonneg x' := by
+  classical
+  by_cases h0 : x ≈ 0
+  · exact IsNonneg_of_equiv_zero (R_trans (R_symm h) h0)
+  · -- x not equiv 0, so hx must be IsPos
+    rcases hx with hpos | hzero
+    · -- IsPos x → IsPos x' → IsNonneg x'
+      by_cases h0' : x' ≈ 0
+      · exact IsNonneg_of_equiv_zero h0'
+      · exact Or.inl (isPos_quotient h hpos)
+    · exact absurd hzero h0
+
+/-- Sum of two positives is positive. -/
+theorem IsPos.add {x y : MyPrereal} (hx : IsPos x) (hy : IsPos y) : IsPos (x + y) := by
+  rcases hx with ⟨A, hApos, N, HN⟩
+  rcases hy with ⟨B, hBpos, M, HM⟩
+  have hAB : 0 < A + B := by
+    have h1 : A + 0 < A + B := Rat.add_lt_add_left.mpr hBpos
+    have h2 : A + 0 = A := Rat.add_zero _
+    rw [h2] at h1
+    exact Rat.lt_trans hApos h1
+  refine ⟨A + B, hAB, max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  show A + B ≤ x n + y n
+  have h1 : A + B ≤ x n + B := Rat.add_le_add_right.mpr (HN n hN)
+  have h2 : x n + B ≤ x n + y n := Rat.add_le_add_left.mpr (HM n hM)
+  exact Rat.le_trans h1 h2
+
+/-- Product of two positives is positive. -/
+theorem IsPos.mul {x y : MyPrereal} (hx : IsPos x) (hy : IsPos y) : IsPos (x * y) := by
+  rcases hx with ⟨A, hApos, N, HN⟩
+  rcases hy with ⟨B, hBpos, M, HM⟩
+  refine ⟨A * B, Rat.mul_pos hApos hBpos, max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  show A * B ≤ x n * y n
+  have h1 : A * B ≤ A * y n := Rat.mul_le_mul_of_nonneg_left (HM n hM) (Rat.le_of_lt hApos)
+  have h2 : A * y n ≤ x n * y n := by
+    apply Rat.mul_le_mul_of_nonneg_right (HN n hN)
+    exact Rat.le_of_lt (Rat.lt_of_lt_of_le hBpos (HM n hM))
+  exact Rat.le_trans h1 h2
+
+/-- Equivalent-to-zero is closed under addition. -/
+private theorem add_equiv_zero {x y : MyPrereal} (hx : x ≈ 0) (hy : y ≈ 0) :
+    (x + y) ≈ (0 : MyPrereal) := by
+  intro ε hε
+  rcases hx (ε / 2) (half_pos hε) with ⟨N, HN⟩
+  rcases hy (ε / 2) (half_pos hε) with ⟨M, HM⟩
+  refine ⟨max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  show absRat ((x + y) n - (0 : MyPrereal) n) ≤ ε
+  have heq : (x + y) n - (0 : MyPrereal) n = x n + y n := by
+    show (x n + y n) - 0 = x n + y n
+    rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [heq]
+  have hxabs : absRat (x n - (0 : MyPrereal) n) ≤ ε / 2 := HN n hN
+  have hyabs : absRat (y n - (0 : MyPrereal) n) ≤ ε / 2 := HM n hM
+  have hzn : (0 : MyPrereal) n = (0 : Rat) := rfl
+  rw [hzn] at hxabs hyabs
+  have hsubx : x n - 0 = x n := by rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  have hsuby : y n - 0 = y n := by rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [hsubx] at hxabs
+  rw [hsuby] at hyabs
+  have htri := absRat_add_le (x n) (y n)
+  have h1 : absRat (x n) + absRat (y n) ≤ ε / 2 + absRat (y n) :=
+    Rat.add_le_add_right.mpr hxabs
+  have h2 : ε / 2 + absRat (y n) ≤ ε / 2 + ε / 2 :=
+    Rat.add_le_add_left.mpr hyabs
+  have hcomb := Rat.le_trans h1 h2
+  have hsum := half_add_half ε
+  have hcomb' : absRat (x n) + absRat (y n) ≤ ε := by
+    have := hcomb; rw [hsum] at this; exact this
+  exact Rat.le_trans htri hcomb'
+
+/-- IsPos plus equivalent-to-zero is still IsPos. -/
+private theorem isPos_add_equiv_zero {x y : MyPrereal} (hxp : IsPos x) (hy0 : y ≈ 0) :
+    IsPos (x + y) := by
+  rcases hxp with ⟨δ, hδpos, N, HN⟩
+  rcases hy0 (δ / 2) (half_pos hδpos) with ⟨M, HM⟩
+  refine ⟨δ / 2, half_pos hδpos, max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  show δ / 2 ≤ (x + y) n
+  have hxn : δ ≤ x n := HN n hN
+  have hyn_abs : absRat (y n - (0 : MyPrereal) n) ≤ δ / 2 := HM n hM
+  have hzn : (0 : MyPrereal) n = (0 : Rat) := rfl
+  rw [hzn] at hyn_abs
+  have hsuby : y n - 0 = y n := by rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [hsuby] at hyn_abs
+  have hyn_lb : -(δ / 2) ≤ y n := (absRat_le_iff.mp hyn_abs).1
+  show δ / 2 ≤ x n + y n
+  have h1 : δ + -(δ / 2) ≤ x n + -(δ / 2) := Rat.add_le_add_right.mpr hxn
+  have h2 : x n + -(δ / 2) ≤ x n + y n := Rat.add_le_add_left.mpr hyn_lb
+  have h3 : δ + -(δ / 2) = δ / 2 := by
+    have hsum := half_add_half δ
+    have : δ + -(δ / 2) = (δ / 2 + δ / 2) + -(δ / 2) := by rw [hsum]
+    rw [this, Rat.add_assoc, Rat.add_neg_cancel, Rat.add_zero]
+  have hcomb := Rat.le_trans h1 h2
+  rw [h3] at hcomb; exact hcomb
+
+/-- Sum of two non-negatives is non-negative. -/
+theorem IsNonneg.add {x y : MyPrereal} (hx : IsNonneg x) (hy : IsNonneg y) :
+    IsNonneg (x + y) := by
+  rcases hx with hxp | hx0
+  · rcases hy with hyp | hy0
+    · exact Or.inl (IsPos.add hxp hyp)
+    · exact Or.inl (isPos_add_equiv_zero hxp hy0)
+  · rcases hy with hyp | hy0
+    · -- y positive, x ≈ 0; use commutativity
+      have hcomm : (x + y) ≈ (y + x) := by
+        intro ε hε
+        refine ⟨0, fun n _ => ?_⟩
+        show absRat ((x + y) n - (y + x) n) ≤ ε
+        have : (x + y) n - (y + x) n = 0 := by
+          show (x n + y n) - (y n + x n) = 0
+          rw [Rat.add_comm (x n) (y n), Rat.sub_self]
+        rw [this, absRat_zero]; exact Rat.le_of_lt hε
+      have hyx : IsPos (y + x) := isPos_add_equiv_zero hyp hx0
+      exact Or.inl (isPos_quotient (R_symm hcomm) hyx)
+    · exact Or.inr (add_equiv_zero hx0 hy0)
+
+/-- Helper: if `y ≈ 0` then `x * y ≈ 0` for any `x`. -/
+private theorem mul_equiv_zero_right {x y : MyPrereal} (hy : y ≈ 0) :
+    (x * y) ≈ (0 : MyPrereal) := by
+  rcases x.bounded with ⟨B, hBpos, hB⟩
+  intro ε hε
+  -- need |y n| ≤ ε/B (or some such)
+  have hBne : B ≠ 0 := fun h => by rw [h] at hBpos; exact Rat.lt_irrefl hBpos
+  have hε_div_B : 0 < ε / B := div_pos hε hBpos
+  rcases hy (ε / B) hε_div_B with ⟨N, HN⟩
+  refine ⟨N, fun n hn => ?_⟩
+  show absRat ((x * y) n - (0 : MyPrereal) n) ≤ ε
+  have h0 : (x * y) n - (0 : MyPrereal) n = x n * y n := by
+    show x n * y n - 0 = x n * y n
+    rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [h0, absRat_mul]
+  have hyn_abs : absRat (y n - (0 : MyPrereal) n) ≤ ε / B := HN n hn
+  have heq : y n - (0 : MyPrereal) n = y n := by
+    show y n - 0 = y n
+    rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+  rw [heq] at hyn_abs
+  -- |x n| * |y n| ≤ B * (ε/B) = ε
+  have h1 : absRat (x n) * absRat (y n) ≤ B * absRat (y n) :=
+    Rat.mul_le_mul_of_nonneg_right (hB n) (absRat_nonneg _)
+  have h2 : B * absRat (y n) ≤ B * (ε / B) :=
+    Rat.mul_le_mul_of_nonneg_left hyn_abs (Rat.le_of_lt hBpos)
+  have h3 : B * (ε / B) = ε := by
+    rw [Rat.div_def, ← Rat.mul_assoc, Rat.mul_comm B ε, Rat.mul_assoc,
+        Rat.mul_inv_cancel _ hBne, Rat.mul_one]
+  rw [h3] at h2
+  exact Rat.le_trans h1 h2
+
+/-- Product of two non-negatives is non-negative. -/
+theorem IsNonneg.mul {x y : MyPrereal} (hx : IsNonneg x) (hy : IsNonneg y) :
+    IsNonneg (x * y) := by
+  rcases hx with hxp | hx0
+  · rcases hy with hyp | hy0
+    · exact Or.inl (IsPos.mul hxp hyp)
+    · exact Or.inr (mul_equiv_zero_right hy0)
+  · -- x ≈ 0; use commutativity
+    have hcomm : (x * y) ≈ (y * x) := by
+      intro ε hε
+      refine ⟨0, fun n _ => ?_⟩
+      show absRat ((x * y) n - (y * x) n) ≤ ε
+      have : (x * y) n - (y * x) n = 0 := by
+        show x n * y n - y n * x n = 0
+        rw [Rat.mul_comm (x n) (y n), Rat.sub_self]
+      rw [this, absRat_zero]; exact Rat.le_of_lt hε
+    have hyx : (y * x) ≈ (0 : MyPrereal) := mul_equiv_zero_right hx0
+    exact Or.inr (R_trans hcomm hyx)
+
+/-- If both `x` and `-x` are non-negative, then `x ≈ 0`. -/
+theorem eq_zero_of_isNonneg_of_isNonneg_neg {x : MyPrereal}
+    (h : IsNonneg x) (h' : IsNonneg (-x)) : x ≈ 0 := by
+  classical
+  by_contra H
+  -- Then x is positive (not ≈ 0, so the IsPos clause holds)
+  have hpos : IsPos x := by
+    rcases h with hp | h0
+    · exact hp
+    · exact absurd h0 H
+  -- And -x is also positive (its negation): need to show -x not ≈ 0
+  have Hneg : ¬ ((-x) ≈ 0) := fun h0 => by
+    -- if -x ≈ 0 then x ≈ -(0) = 0
+    apply H
+    intro ε hε
+    rcases h0 ε hε with ⟨N, HN⟩
+    refine ⟨N, fun n hn => ?_⟩
+    have := HN n hn
+    show absRat (x n - (0 : MyPrereal) n) ≤ ε
+    have hh : (-x) n - (0 : MyPrereal) n = -(x n) := by
+      show (-(x n)) - 0 = -(x n)
+      rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+    rw [hh] at this
+    have hg : x n - (0 : MyPrereal) n = x n := by
+      show x n - 0 = x n
+      rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
+    rw [hg]
+    have := absRat_neg (x n) ▸ this
+    exact this
+  have hpos' : IsPos (-x) := by
+    rcases h' with hp | h0
+    · exact hp
+    · exact absurd h0 Hneg
+  -- IsPos x and IsPos (-x): so eventually x n ≥ A > 0 and -x n ≥ B > 0, contradiction
+  rcases hpos with ⟨A, hApos, N, HN⟩
+  rcases hpos' with ⟨B, hBpos, N', HN'⟩
+  have hbig := Nat.le_max_left N N'
+  have hbig' := Nat.le_max_right N N'
+  have hxN : A ≤ x (max N N') := HN _ hbig
+  have hxN' : B ≤ -(x (max N N')) := by
+    have := HN' (max N N') hbig'
+    show B ≤ -(x (max N N')); exact this
+  -- x (max N N') ≥ A > 0 and -(x (max N N')) ≥ B > 0
+  -- so x (max N N') ≤ -B < 0, contradicting ≥ A > 0
+  have hxneg : x (max N N') ≤ -B := by
+    have h1 : -(- (x (max N N'))) ≤ -B := Rat.neg_le_neg hxN'
+    rw [Rat.neg_neg] at h1; exact h1
+  have hABneg : A ≤ -B := Rat.le_trans hxN hxneg
+  have hBneg : -B < 0 := by
+    have := Rat.neg_lt_neg hBpos; simpa using this
+  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le (Rat.lt_of_le_of_lt hABneg hBneg) (Rat.le_of_lt hApos))
+
+/-- A non-non-negative pre-real has non-negative negation. -/
+theorem isNonneg_neg_of_not_isNonneg {x : MyPrereal} (hx : ¬ IsNonneg x) :
+    IsNonneg (-x) := by
+  classical
+  -- ¬ IsNonneg x ⇒ ¬ IsPos x ∧ ¬ x ≈ 0
+  have hxnp : ¬ IsPos x := fun hp => hx (Or.inl hp)
+  have hxn0 : ¬ x ≈ 0 := fun hz => hx (Or.inr hz)
+  -- So x is bounded away from 0 (by pos_of_not_equiv_zero) but not bounded below by any δ > 0.
+  -- The argument: ¬ IsPos x means ∀ δ > 0, ∀ N, ∃ n ≥ N, x n < δ.
+  -- Combined with bounded-away: ∃ δ > 0, ∀ n ≥ N₀, |x n| > δ.
+  -- For some n ≥ max N₀ N, both |x n| > δ and x n < δ/2 (say). So x n is large in absolute value but
+  -- negative ⇒ -x n > δ/2.
+  -- Then we need: eventually -x n ≥ δ/2 (i.e. IsPos (-x)).
+  rcases pos_of_not_equiv_zero hxn0 with ⟨δ, hδpos, N₀, HN₀⟩
+  rcases x.prop (δ / 2) (half_pos hδpos) with ⟨M, HM⟩
+  -- Find one n at which x n < δ (not IsPos x specialised to δ at index max N₀ M)
+  -- ¬ IsPos x : ¬ ∃ δ, 0 < δ ∧ ∃ N, ∀ n ≥ N, δ ≤ x n
+  -- so for δ : ∃ N, ∀ n ≥ N, δ ≤ x n is false, i.e. ∀ N, ∃ n ≥ N, ¬ δ ≤ x n, i.e. x n < δ.
+  have hex : ∀ N : Nat, ∃ n, N ≤ n ∧ x n < δ := by
+    intro N
+    by_contra h
+    apply hxnp
+    refine ⟨δ, hδpos, N, fun n hn => ?_⟩
+    by_contra hc
+    apply h
+    refine ⟨n, hn, ?_⟩
+    exact Rat.not_le.mp hc
+  rcases hex (max N₀ M) with ⟨R, hR_max, hRδ⟩
+  have hR_N₀ : N₀ ≤ R := Nat.le_trans (Nat.le_max_left _ _) hR_max
+  have hR_M : M ≤ R := Nat.le_trans (Nat.le_max_right _ _) hR_max
+  -- |x R| > δ and x R < δ. So x R must be < -δ (since otherwise -δ ≤ x R < δ → |x R| < δ).
+  -- Actually from |x R| > δ and x R < δ, need x R < -δ
+  have habsR : δ < absRat (x R) := HN₀ R hR_N₀
+  have hxR_neg : x R < -δ := by
+    -- Suppose ¬ (x R < -δ), i.e. -δ ≤ x R. Then x R ∈ [-δ, δ), so |x R| ≤ δ, contradicting δ < |x R|.
+    by_contra hc
+    have hge : -δ ≤ x R := Rat.not_lt.mp hc
+    have habs_le : absRat (x R) ≤ δ := absRat_le_iff.mpr ⟨hge, Rat.le_of_lt hRδ⟩
+    exact Rat.lt_irrefl (Rat.lt_of_lt_of_le habsR habs_le)
+  -- Now use Cauchy: for n ≥ M, |x R - x n| ≤ δ/2, so x n < x R + δ/2 < -δ + δ/2 = -δ/2.
+  -- Thus -x n > δ/2, so -x is IsPos with witness δ/2 at threshold (max R M).
+  left
+  refine ⟨δ / 2, half_pos hδpos, max R M, fun n hn => ?_⟩
+  have hRn : R ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hMn : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  have hbnd : absRat (x R - x n) ≤ δ / 2 := HM R n hR_M hMn
+  have hbnd2 : x R - x n ≤ δ / 2 := (absRat_le_iff.mp hbnd).2
+  -- x n ≥ x R - δ/2 (from hbnd2)
+  -- But we want -x n ≥ δ/2, i.e., x n ≤ -(δ/2).
+  -- We have x R < -δ and -(x R - x n) ≥ -(δ/2), i.e., x n - x R ≥ -(δ/2).
+  -- and from absRat_le_iff: -(δ/2) ≤ x R - x n ≤ δ/2.
+  -- Goal: δ/2 ≤ -x n, i.e., x n ≤ -(δ/2).
+  -- From x R - x n ≤ δ/2: x R ≤ x n + δ/2, i.e., x n ≥ x R - δ/2.
+  -- From -(δ/2) ≤ x R - x n: x n - x R ≤ δ/2, i.e., x n ≤ x R + δ/2.
+  -- We have x R < -δ, so x R + δ/2 < -δ + δ/2 = -δ/2. So x n < -δ/2. Hence -x n > δ/2.
+  have hbnd3 : -(δ / 2) ≤ x R - x n := (absRat_le_iff.mp hbnd).1
+  -- x n ≤ x R + δ/2 (from -(δ/2) ≤ x R - x n)
+  have hxn_upper : x n ≤ x R + δ / 2 := by
+    -- -(δ/2) ≤ x R - x n means x n - x R ≤ δ/2 (wait, no) — actually -(δ/2) ≤ x R - x n means
+    -- x n + -(δ/2) ≤ x R, i.e., x n ≤ x R + δ/2.
+    -- Add x n + δ/2 to both sides: -(δ/2) + (x n + δ/2) ≤ (x R - x n) + (x n + δ/2)
+    have h1 : -(δ/2) + (x n + δ/2) ≤ (x R - x n) + (x n + δ/2) :=
+      Rat.add_le_add_right.mpr hbnd3
+    have hl : -(δ/2) + (x n + δ/2) = x n := by
+      rw [Rat.add_comm (x n) (δ/2), ← Rat.add_assoc, Rat.neg_add_cancel, Rat.zero_add]
+    have hr : (x R - x n) + (x n + δ/2) = x R + δ/2 := by
+      rw [Rat.sub_eq_add_neg, Rat.add_assoc, ← Rat.add_assoc (-x n), Rat.neg_add_cancel,
+          Rat.zero_add]
+    rw [hl, hr] at h1; exact h1
+  -- x R + δ/2 < -δ + δ/2
+  have hxR_plus : x R + δ / 2 < -δ + δ / 2 := Rat.add_lt_add_right.mpr hxR_neg
+  -- -δ + δ/2 = -(δ/2)
+  have hneg_half : -δ + δ / 2 = -(δ / 2) := by
+    have hsum := half_add_half δ
+    have : -(δ / 2 + δ / 2) + δ / 2 = -(δ / 2) := by
+      rw [Rat.neg_add, Rat.add_assoc, Rat.neg_add_cancel, Rat.add_zero]
+    rw [← hsum]; rw [hsum] at this; rw [hsum]; exact this
+  rw [hneg_half] at hxR_plus
+  have hxn_strict : x n < -(δ / 2) := Rat.lt_of_le_of_lt hxn_upper hxR_plus
+  -- Goal: δ/2 ≤ -x n
+  show δ / 2 ≤ -(x n)
+  have : -(-(δ/2)) ≤ -(x n) := Rat.neg_le_neg (Rat.le_of_lt hxn_strict)
+  rw [Rat.neg_neg] at this; exact this
+
+end MyPrereal
+
+/-! ### Lifted order on `MyReal`. -/
+
+namespace MyReal
+
+open MyPrereal
+
+/-- The non-negativity predicate on `MyReal`. -/
+def IsNonneg : MyReal → Prop :=
+  Quotient.lift MyPrereal.IsNonneg
+    (fun _ _ h => propext ⟨isNonneg_quotient h, isNonneg_quotient (R_symm h)⟩)
+
+theorem isNonneg_def {x : MyPrereal} : IsNonneg (mk x) ↔ x.IsNonneg := Iff.rfl
+
+@[simp] theorem zero_nonneg' : IsNonneg 0 := by
+  show MyPrereal.IsNonneg 0
+  exact MyPrereal.zero_nonneg
+
+theorem eq_zero_of_isNonneg_of_isNonneg_neg {x : MyReal}
+    (h : IsNonneg x) (h' : IsNonneg (-x)) : x = 0 := by
+  refine Quotient.inductionOn x
+    (motive := fun x => IsNonneg x → IsNonneg (-x) → x = 0) ?_ h h'
+  intro a ha ha'
+  show mk a = mk 0
+  apply Quotient.sound
+  exact MyPrereal.eq_zero_of_isNonneg_of_isNonneg_neg ha ha'
+
+/-- `IsNonneg.add` lifts to `MyReal`. -/
+theorem IsNonneg.add {x y : MyReal} (hx : IsNonneg x) (hy : IsNonneg y) :
+    IsNonneg (x + y) := by
+  refine Quotient.inductionOn₂ x y
+    (motive := fun x y => IsNonneg x → IsNonneg y → IsNonneg (x + y)) ?_ hx hy
+  intro a b ha hb
+  show MyPrereal.IsNonneg (a + b)
+  exact MyPrereal.IsNonneg.add ha hb
+
+/-- `IsNonneg.mul` lifts. -/
+theorem IsNonneg.mul {x y : MyReal} (hx : IsNonneg x) (hy : IsNonneg y) :
+    IsNonneg (x * y) := by
+  refine Quotient.inductionOn₂ x y
+    (motive := fun x y => IsNonneg x → IsNonneg y → IsNonneg (x * y)) ?_ hx hy
+  intro a b ha hb
+  show MyPrereal.IsNonneg (a * b)
+  exact MyPrereal.IsNonneg.mul ha hb
+
+/-- Helper: `(a + b) - (a + c) = b - c` over `Rat`. -/
+private theorem rat_add_sub_add_left (a b c : Rat) : (a + b) - (a + c) = b - c := by
+  -- LHS: (a+b) + -(a+c) = (a+b) + (-a + -c) = b + (a + (-a + -c)) = b + ((a + -a) + -c) = b + -c
+  rw [Rat.sub_eq_add_neg (a + b), Rat.sub_eq_add_neg b, Rat.neg_add]
+  rw [Rat.add_comm a b, Rat.add_assoc b a (-a + -c), ← Rat.add_assoc a (-a) (-c),
+      Rat.add_neg_cancel, Rat.zero_add]
+
+/-- The order on `MyReal`. -/
+def le (x y : MyReal) : Prop := IsNonneg (y - x)
+
+instance : LE MyReal := ⟨le⟩
+instance : LT MyReal := ⟨fun x y => x ≤ y ∧ x ≠ y⟩
+
+theorem le_def (x y : MyReal) : x ≤ y ↔ IsNonneg (y - x) := Iff.rfl
+theorem lt_def (x y : MyReal) : x < y ↔ x ≤ y ∧ x ≠ y := Iff.rfl
+
+/-- Helper for sub. -/
+private theorem sub_self_eq_zero (x : MyReal) : x - x = 0 := by
+  refine Quotient.inductionOn x (motive := fun x => x - x = 0) (fun a => ?_)
+  show mk a - mk a = mk 0
+  rw [sub_def]
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  rw [MyPrereal.sub_apply]; show a n - a n = 0
+  exact Rat.sub_self
+
+theorem le_refl (x : MyReal) : x ≤ x := by
+  rw [le_def, sub_self_eq_zero]; exact zero_nonneg'
+
+theorem zero_le_iff_isNonneg (x : MyReal) : 0 ≤ x ↔ IsNonneg x := by
+  rw [le_def]
+  -- x - 0 = x
+  have : x - 0 = x := by
+    show x + -0 = x
+    rw [show (-(0 : MyReal)) = (0 : MyReal) by
+      show -(mk 0) = mk 0
+      rw [neg_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      show -(0 : Rat) = 0
+      exact Rat.neg_zero,
+      add_zero]
+  rw [this]
+
+theorem zero_le_one : (0 : MyReal) ≤ 1 := by
+  rw [zero_le_iff_isNonneg]
+  show MyPrereal.IsNonneg 1
+  exact MyPrereal.one_nonneg
+
+/-- `(x + y) - (x + z) = y - z` over `MyReal`. -/
+private theorem add_sub_add_left_eq (x y z : MyReal) : (x + y) - (x + z) = y - z := by
+  refine Quotient.inductionOn₃ x y z
+    (motive := fun x y z => (x + y) - (x + z) = y - z) (fun a b c => ?_)
+  show (mk a + mk b) - (mk a + mk c) = mk b - mk c
+  rw [add_def, add_def, sub_def, sub_def]
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  rw [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.add_apply, MyPrereal.sub_apply]
+  -- Goal: (a n + b n) - (a n + c n) = b n - c n
+  -- Use a helper Rat lemma:
+  exact rat_add_sub_add_left _ _ _
+
+theorem le_trans (x y z : MyReal) (h1 : x ≤ y) (h2 : y ≤ z) : x ≤ z := by
+  rw [le_def] at *
+  -- (z - x) = (z - y) + (y - x), use IsNonneg.add
+  have hsum := IsNonneg.add h2 h1
+  have heq : (z - y) + (y - x) = z - x := by
+    refine Quotient.inductionOn₃ x y z
+      (motive := fun x y z => (z - y) + (y - x) = z - x) (fun a b c => ?_)
+    show (mk c - mk b) + (mk b - mk a) = mk c - mk a
+    rw [sub_def, sub_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    rw [MyPrereal.add_apply, MyPrereal.sub_apply, MyPrereal.sub_apply, MyPrereal.sub_apply]
+    show (c n - b n) + (b n - a n) = c n - a n
+    rw [Rat.sub_eq_add_neg (c n), Rat.sub_eq_add_neg (b n), Rat.sub_eq_add_neg (c n),
+        Rat.add_assoc, ← Rat.add_assoc (-b n), Rat.neg_add_cancel, Rat.zero_add]
+  rw [← heq]; exact hsum
+
+theorem le_antisymm (x y : MyReal) (hxy : x ≤ y) (hyx : y ≤ x) : x = y := by
+  -- (y - x) ≥ 0 and (x - y) ≥ 0; (x - y) = -(y - x), so y - x = 0, so x = y.
+  rw [le_def] at hxy hyx
+  -- show y - x = 0 then x = y
+  have hneg : x - y = -(y - x) := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => x - y = -(y - x)) (fun a b => ?_)
+    show mk a - mk b = -(mk b - mk a)
+    rw [sub_def, sub_def, neg_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply, MyPrereal.sub_apply]
+    show a n - b n = -(b n - a n)
+    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg, Rat.neg_add, Rat.neg_neg, Rat.add_comm]
+  rw [hneg] at hyx
+  have hyx_zero : y - x = 0 := eq_zero_of_isNonneg_of_isNonneg_neg hxy hyx
+  -- y - x = 0 → y = x
+  have : y - x + x = 0 + x := by rw [hyx_zero]
+  rw [zero_add] at this
+  have heq : y - x + x = y := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => y - x + x = y) (fun a b => ?_)
+    show (mk b - mk a) + mk a = mk b
+    rw [sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    rw [MyPrereal.add_apply, MyPrereal.sub_apply]
+    show (b n - a n) + a n = b n
+    rw [Rat.sub_eq_add_neg, Rat.add_assoc, Rat.neg_add_cancel, Rat.add_zero]
+  rw [heq] at this; exact this.symm
+
+theorem add_le_add_left (x y : MyReal) (h : x ≤ y) (t : MyReal) : t + x ≤ t + y := by
+  rw [le_def] at *
+  rw [add_sub_add_left_eq]; exact h
+
+theorem mul_nonneg (x y : MyReal) (hx : 0 ≤ x) (hy : 0 ≤ y) : 0 ≤ x * y := by
+  rw [zero_le_iff_isNonneg] at *
+  exact IsNonneg.mul hx hy
+
+/-- The total-order property. -/
+theorem le_total (x y : MyReal) : x ≤ y ∨ y ≤ x := by
+  classical
+  by_cases h1 : IsNonneg (y - x)
+  · exact Or.inl h1
+  · -- ¬ IsNonneg (y - x), so IsNonneg (-(y - x)) = IsNonneg (x - y)
+    refine Or.inr ?_
+    rw [le_def]
+    have h2 : IsNonneg (-(y - x)) := by
+      refine Quotient.inductionOn (y - x) (motive := fun u => ¬ IsNonneg u → IsNonneg (-u)) ?_ h1
+      intro a ha
+      show MyPrereal.IsNonneg (-a)
+      exact MyPrereal.isNonneg_neg_of_not_isNonneg ha
+    -- -(y - x) = x - y
+    have heq : -(y - x) = x - y := by
+      refine Quotient.inductionOn₂ x y
+        (motive := fun x y => -(y - x) = x - y) (fun a b => ?_)
+      show -(mk b - mk a) = mk a - mk b
+      rw [sub_def, sub_def, neg_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      rw [MyPrereal.sub_apply, MyPrereal.neg_apply, MyPrereal.sub_apply]
+      show -(b n - a n) = a n - b n
+      rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg, Rat.neg_add, Rat.neg_neg, Rat.add_comm]
+    rw [heq] at h2; exact h2
+
+theorem mul_pos (x y : MyReal) (hx : 0 < x) (hy : 0 < y) : 0 < x * y := by
+  rcases hx with ⟨hxle, hxne⟩
+  rcases hy with ⟨hyle, hyne⟩
+  refine ⟨?_, ?_⟩
+  · exact mul_nonneg _ _ hxle hyle
+  · -- 0 ≠ x * y; suppose x * y = 0. Need to derive a contradiction.
+    intro h
+    -- We don't have a "mul_eq_zero" yet. Use mul_inv_cancel.
+    -- If x * y = 0 then 1 = (x * y) * (x * y)⁻¹ = 0 * (x * y)⁻¹ = 0, contradiction.
+    -- But that needs x * y ≠ 0. Easier: if x ≠ 0 (i.e., 0 ≠ x), then if x * y = 0, multiply by x⁻¹: y = 0.
+    have hxnz : x ≠ 0 := fun h => hxne h.symm
+    have hynz : y ≠ 0 := fun h => hyne h.symm
+    have : x⁻¹ * (x * y) = x⁻¹ * 0 := by rw [h.symm]
+    rw [mul_zero] at this
+    rw [← mul_assoc, mul_comm x⁻¹ x, mul_inv_cancel x hxnz, one_mul] at this
+    exact hynz this
+
+/-! ### `Nat`-cast and Archimedean property. -/
+
+/-- `Nat`-to-`MyReal` cast via the constant rational sequence. -/
+def natCast (n : Nat) : MyReal := mk ⟨fun _ => (n : Rat), isCauchy_const _⟩
+
+instance : NatCast MyReal := ⟨natCast⟩
+
+theorem natCast_def (n : Nat) : ((n : MyReal)) = mk ⟨fun _ => (n : Rat), isCauchy_const _⟩ := rfl
+
+/-- The Archimedean property: every real is bounded above by some natural. -/
+theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
+  refine Quotient.inductionOn x (motive := fun x => ∃ n : Nat, x < (n : MyReal)) ?_
+  intro a
+  rcases a.bounded with ⟨B, hBpos, hB⟩
+  rcases Rat.archimedean B with ⟨n, hn⟩
+  refine ⟨n + 1, ?_⟩
+  -- mk a < (n+1 : MyReal), i.e., 0 ≤ (n+1) - a strictly
+  show mk a < ((n + 1 : Nat) : MyReal)
+  refine ⟨?_, ?_⟩
+  · -- mk a ≤ ((n+1 : Nat) : MyReal): show IsNonneg (((n+1) : MyReal) - mk a)
+    rw [le_def]
+    show IsNonneg (((n + 1 : Nat) : MyReal) - mk a)
+    show IsNonneg (mk ⟨fun _ => ((n + 1 : Nat) : Rat), isCauchy_const _⟩ - mk a)
+    rw [sub_def]
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg 0 (fun m _ => ?_)
+    rw [MyPrereal.sub_apply]
+    show 0 ≤ ((n + 1 : Nat) : Rat) - a m
+    -- a m ≤ |a m| ≤ B < n ≤ n + 1
+    have h1 : a m ≤ absRat (a m) := le_absRat _
+    have h2 : absRat (a m) ≤ B := hB m
+    have h3 : a m ≤ B := Rat.le_trans h1 h2
+    have h4 : B < (n : Rat) := hn
+    have h5 : a m < (n : Rat) := Rat.lt_of_le_of_lt h3 h4
+    have h6 : (n : Rat) ≤ ((n + 1 : Nat) : Rat) := by
+      rw [Rat.natCast_add]
+      have : (n : Rat) + 0 ≤ (n : Rat) + ((1 : Nat) : Rat) := by
+        apply Rat.add_le_add_left.mpr; decide
+      have hh : (n : Rat) + 0 = (n : Rat) := Rat.add_zero _
+      rw [hh] at this; exact this
+    have h7 : a m ≤ ((n + 1 : Nat) : Rat) := Rat.le_trans (Rat.le_of_lt h5) h6
+    -- 0 ≤ (n+1 : Rat) - a m
+    show 0 ≤ ((n + 1 : Nat) : Rat) - a m
+    have hsub : ((n + 1 : Nat) : Rat) - a m = ((n + 1 : Nat) : Rat) + -(a m) := Rat.sub_eq_add_neg _ _
+    rw [hsub]
+    have hk1 : a m + -(a m) ≤ ((n + 1 : Nat) : Rat) + -(a m) :=
+      Rat.add_le_add_right.mpr h7
+    have hk2 : a m + -(a m) = 0 := Rat.add_neg_cancel _
+    rw [hk2] at hk1; exact hk1
+  · -- mk a ≠ ((n+1 : Nat) : MyReal)
+    -- if mk a = ((n+1) : MyReal) then a ≈ const ↑(n+1), which means eventually |a m - (n+1)| ≤ ε
+    -- but |a m| ≤ B < n < n+1, so a m < n+1 - ε for small ε. Take ε = 1.
+    intro h
+    -- mk a = ((n+1 : Nat) : MyReal) → a ≈ ⟨_, isCauchy_const ↑(n+1)⟩
+    have ha_eq : a ≈ ⟨fun _ => ((n + 1 : Nat) : Rat), isCauchy_const _⟩ :=
+      Quotient.exact h
+    -- For ε = 1/2, get N such that |a m - (n+1)| ≤ 1/2 for m ≥ N
+    have h12 : (0 : Rat) < 1 / 2 := by
+      rw [Rat.div_def, Rat.one_mul]; exact Rat.inv_pos.mpr (by decide)
+    rcases ha_eq (1/2) h12 with ⟨N, HN⟩
+    have := HN N (Nat.le_refl _)
+    -- this : |a N - (n+1)| ≤ 1/2
+    have hrange := absRat_le_iff.mp this
+    -- a N ≥ (n+1) - 1/2 = n + 1/2, but |a N| ≤ B < n, contradiction.
+    have h1 : ((n + 1 : Nat) : Rat) - 1/2 ≤ a N := by
+      -- from -(1/2) ≤ a N - (n+1)
+      have hh := hrange.1
+      -- -(1/2) ≤ a N - (n+1) means a N - (n+1) + (n+1) ≥ -(1/2) + (n+1), i.e., a N ≥ (n+1) - 1/2
+      have hadd : -(1/2) + ((n + 1 : Nat) : Rat) ≤ (a N - ((n + 1 : Nat) : Rat)) + ((n + 1 : Nat) : Rat) :=
+        Rat.add_le_add_right.mpr hh
+      have hl : -(1/2) + ((n + 1 : Nat) : Rat) = ((n + 1 : Nat) : Rat) + -(1/2) := Rat.add_comm _ _
+      have hr : (a N - ((n + 1 : Nat) : Rat)) + ((n + 1 : Nat) : Rat) = a N := by
+        rw [Rat.sub_eq_add_neg, Rat.add_assoc, Rat.neg_add_cancel, Rat.add_zero]
+      rw [hl, hr] at hadd
+      -- hadd : (n+1) + -(1/2) ≤ a N
+      have : ((n + 1 : Nat) : Rat) - 1/2 = ((n + 1 : Nat) : Rat) + -(1/2) := Rat.sub_eq_add_neg _ _
+      rw [this]; exact hadd
+    -- But a N ≤ |a N| ≤ B < n < (n+1) - 1/2 (since 1/2 < 1)
+    have h2 : a N ≤ absRat (a N) := le_absRat _
+    have h3 : absRat (a N) ≤ B := hB N
+    have h4 : a N ≤ B := Rat.le_trans h2 h3
+    have h5 : B < (n : Rat) := hn
+    have h6 : a N < (n : Rat) := Rat.lt_of_le_of_lt h4 h5
+    -- Need (n : Rat) ≤ (n+1 : Rat) - 1/2
+    have h7 : (n : Rat) ≤ ((n + 1 : Nat) : Rat) - 1/2 := by
+      -- (n+1) - 1/2 = n + 1/2 ≥ n
+      rw [Rat.natCast_add, Rat.sub_eq_add_neg, Rat.add_assoc]
+      have hh : (0 : Rat) ≤ ((1 : Nat) : Rat) + -(1/2) := by
+        -- (1 : Nat) cast = 1, 1 - 1/2 = 1/2 ≥ 0
+        show (0 : Rat) ≤ 1 + -(1/2)
+        have h12_lt_1 : (1 : Rat) / 2 < 1 := by
+          rw [Rat.div_def, Rat.one_mul]
+          have h2pos : (0 : Rat) < 2 := by decide
+          have h2gt1 : (1 : Rat) < 2 := by
+            have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by
+              rw [Rat.lt_iff]; decide
+            exact this
+          have := Rat.mul_lt_mul_of_pos_left h2gt1 (Rat.inv_pos.mpr h2pos)
+          rw [Rat.mul_one, Rat.inv_mul_cancel _ (by decide : (2 : Rat) ≠ 0)] at this
+          exact this
+        -- 1 + -(1/2) = 1 - 1/2 ≥ 0 since 1/2 < 1
+        have : (1 : Rat) / 2 ≤ 1 := Rat.le_of_lt h12_lt_1
+        have hh2 : (1 : Rat) / 2 + -(1/2) ≤ 1 + -(1/2) := Rat.add_le_add_right.mpr this
+        rw [Rat.add_neg_cancel] at hh2; exact hh2
+      have hcast : ((1 : Nat) : Rat) = 1 := by simp
+      rw [hcast]
+      have : (n : Rat) + 0 ≤ (n : Rat) + (1 + -(1/2)) := Rat.add_le_add_left.mpr hh
+      have hh3 : (n : Rat) + 0 = (n : Rat) := Rat.add_zero _
+      rw [hh3] at this; exact this
+    -- Combine: a N < n ≤ (n+1) - 1/2 ≤ a N, contradiction
+    have hlast : a N < a N := Rat.lt_of_lt_of_le (Rat.lt_of_lt_of_le h6 h7) h1
+    exact Rat.lt_irrefl hlast
+
+end MyReal
+
+end Order
+
 end Mgw.Reals
