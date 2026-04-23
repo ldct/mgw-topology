@@ -321,8 +321,7 @@ theorem isCauchy_bounded {x : Nat → Rat} (hx : IsCauchy x) :
   have hMM1 : M < M + 1 := by
     have h01 : (0 : Rat) < 1 := by decide
     have hM1 : M + 0 < M + 1 := Rat.add_lt_add_left.mpr h01
-    have heq : M + 0 = M := Rat.add_zero M
-    rw [heq] at hM1; exact hM1
+    grind
   have hMM1le : M ≤ M + 1 := Rat.le_of_lt hMM1
   refine ⟨M + 1, ?_, ?_⟩
   · -- 0 < M + 1
@@ -339,9 +338,7 @@ theorem isCauchy_bounded {x : Nat → Rat} (hx : IsCauchy x) :
       have hAA : A ≤ A := Nat.le_refl _
       have hdiff : absRat (x n - x A) ≤ 1 := hA n A hAn hAA
       -- |x n| = |x A + (x n - x A)| ≤ |x A| + |x n - x A|
-      have heq : x A + (x n - x A) = x n := by
-        rw [Rat.sub_eq_add_neg, Rat.add_comm (x n), ← Rat.add_assoc,
-            Rat.add_neg_cancel, Rat.zero_add]
+      have heq : x A + (x n - x A) = x n := by grind
       have htri : absRat (x n) ≤ absRat (x A) + absRat (x n - x A) := by
         have := absRat_add_le (x A) (x n - x A)
         rw [heq] at this; exact this
@@ -1213,7 +1210,7 @@ theorem zero_ne_one : (0 : MyReal) ≠ 1 := by
     rw [Rat.div_def, Rat.one_mul]
     have h2 : (2 : Rat) > 1 := by
       show (1 : Rat) < 2
-      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by rw [Rat.lt_iff]; decide
+      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
       exact this
     have h2pos : (0 : Rat) < 2 := by decide
     have h2inv : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr h2pos
@@ -1937,7 +1934,7 @@ theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
           rw [Rat.div_def, Rat.one_mul]
           have h2pos : (0 : Rat) < 2 := by decide
           have h2gt1 : (1 : Rat) < 2 := by
-            have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by rw [Rat.lt_iff]; decide
+            have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
             exact this
           have := Rat.mul_lt_mul_of_pos_left h2gt1 (Rat.inv_pos.mpr h2pos)
           rw [Rat.mul_one, Rat.inv_mul_cancel _ (by decide : (2 : Rat) ≠ 0)] at this
@@ -2136,7 +2133,7 @@ example : (1 : MyReal) + 1 ≠ 0 := by
         Rat.add_le_add_left.mpr (Rat.le_of_lt h2inv_pos)
       grind
     have h1lt2 : (1 : Rat) < 2 := by
-      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by rw [Rat.lt_iff]; decide
+      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
       exact this
     exact Rat.lt_of_le_of_lt h2inv_le_1 h1lt2
   exact Rat.lt_irrefl (Rat.lt_of_lt_of_le h2_gt hcontra)
