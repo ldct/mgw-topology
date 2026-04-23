@@ -2114,57 +2114,32 @@ open MyReal MyPrereal
 /-- Constants `0` and `1` are distinct in `MyReal`. -/
 example : (1 : MyReal) + 1 ≠ 0 := by
   intro h
-  -- 1 + 1 = 0 means 1 = -1; but 1 = mk 1, etc.
-  -- Use: from h, mk 1 + mk 1 = mk 0, so (1 + 1 : MyPrereal) ≈ 0.
   have h' : ((1 : MyPrereal) + (1 : MyPrereal)) ≈ (0 : MyPrereal) := by
     have : (mk 1 + mk 1 : MyReal) = mk 0 := h
     rw [add_def] at this
     exact Quotient.exact this
-  -- Now (1 + 1)(N) - 0(N) = 2 - 0 = 2. So |2| ≤ ε for all ε > 0, contradiction.
   rcases h' (1/2) (by rw [Rat.div_def, Rat.one_mul]; exact Rat.inv_pos.mpr (by decide)) with ⟨N, HN⟩
   have := HN N (Nat.le_refl _)
-  -- this : absRat ((1 + 1) N - 0 N) ≤ 1/2
   have heq : ((1 : MyPrereal) + 1) N - (0 : MyPrereal) N = 2 := by
-    show ((1 : Rat) + 1) - 0 = 2
-    -- 1 + 1 = 2 in Rat
-    rw [Rat.sub_eq_add_neg, Rat.neg_zero, Rat.add_zero]
-    show ((1 : Int) : Rat) + ((1 : Int) : Rat) = ((2 : Int) : Rat)
-    rw [← Rat.intCast_add]; rfl
+    show ((1 : Rat) + 1) - 0 = 2; grind
   rw [heq] at this
-  -- absRat 2 = 2; need 2 > 1/2.
   have h2 : absRat (2 : Rat) = 2 := absRat_of_nonneg (by decide)
   rw [h2] at this
-  -- 2 ≤ 1/2 is false.
-  have : (2 : Rat) ≤ 1/2 := this
-  -- 1/2 < 2 (clear) so contradiction
+  have hcontra : (2 : Rat) ≤ 1/2 := this
   have h2_gt : (1 : Rat) / 2 < 2 := by
     rw [Rat.div_def, Rat.one_mul]
-    -- 2⁻¹ < 2
     have h2pos : (0 : Rat) < 2 := by decide
-    have h0lt2 : (0 : Rat) < 2 := by decide
-    have h1lt4 : (1 : Rat) < 4 := by
-      have : ((1 : Int) : Rat) < ((4 : Int) : Rat) := by rw [Rat.lt_iff]; decide
-      exact this
-    have h4eq : (2 : Rat) * 2 = 4 := by
-      show ((2 : Int) : Rat) * ((2 : Int) : Rat) = ((4 : Int) : Rat)
-      rw [← Rat.intCast_mul]; rfl
-    -- 2⁻¹ < 2 iff 1 < 2 * 2 = 4, which is true.
     have h2inv_pos : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr h2pos
-    -- (2⁻¹) * 2 < 2 * 2 from 2⁻¹ < 2 ... circular.
-    -- Better: use 2⁻¹ * 2 = 1 < 2 = 2⁻¹ * 4
-    -- So 2⁻¹ * (2 - 4) < 0; doesn't directly help.
-    -- Direct: 2⁻¹ ≤ 1 (from inv_two_add_inv_two)  and 1 < 2.
     have h2inv_le_1 : (2 : Rat)⁻¹ ≤ 1 := by
       have hsum : (2 : Rat)⁻¹ + (2 : Rat)⁻¹ = 1 := MyPrereal.inv_two_add_inv_two
       have h1 : (2 : Rat)⁻¹ + 0 ≤ (2 : Rat)⁻¹ + (2 : Rat)⁻¹ :=
         Rat.add_le_add_left.mpr (Rat.le_of_lt h2inv_pos)
-      have h2 : (2 : Rat)⁻¹ + 0 = (2 : Rat)⁻¹ := Rat.add_zero _
-      rw [h2, hsum] at h1; exact h1
+      grind
     have h1lt2 : (1 : Rat) < 2 := by
       have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by rw [Rat.lt_iff]; decide
       exact this
     exact Rat.lt_of_le_of_lt h2inv_le_1 h1lt2
-  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le h2_gt this)
+  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le h2_gt hcontra)
 
 /-- Archimedean witness exists. -/
 example (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := MyReal.archimedean x
