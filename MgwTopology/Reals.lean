@@ -352,4 +352,118 @@ theorem le_listMax_default (d : Rat) : ∀ l : List Rat, d ≤ listMax d l
 
 end RatExtras
 
+/-! ## Section 2 — IsCauchy and MyPrereal.
+
+A Cauchy sequence over `Rat` is one whose tail differences become small.
+`MyPrereal` packages such a sequence with its proof. Every Cauchy sequence
+is bounded (Lemma `MyPrereal.bounded`); we prove this via the `listMax`
+helper from §1. -/
+
+section Cauchy
+
+/-- A sequence `x : Nat → Rat` is Cauchy iff for every `ε > 0` there is an
+index past which all pairwise differences are bounded by `ε`. -/
+def IsCauchy (x : Nat → Rat) : Prop :=
+  ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ p q : Nat, N ≤ p → N ≤ q → absRat (x p - x q) ≤ ε
+
+/-- The constant sequence is Cauchy. -/
+theorem isCauchy_const (c : Rat) : IsCauchy (fun _ => c) := by
+  intro ε hε
+  refine ⟨0, fun p q _ _ => ?_⟩
+  have : c - c = 0 := Rat.sub_self
+  rw [this, absRat_zero]; exact Rat.le_of_lt hε
+
+/-- A pre-real number: a Cauchy sequence over `Rat`. -/
+structure MyPrereal where
+  /-- The underlying sequence. -/
+  val : Nat → Rat
+  /-- The Cauchy property. -/
+  isCauchy : IsCauchy val
+
+namespace MyPrereal
+
+/-- Apply the underlying sequence at an index. -/
+@[coe] def toFun (x : MyPrereal) : Nat → Rat := x.val
+
+instance : CoeFun MyPrereal (fun _ => Nat → Rat) := ⟨MyPrereal.val⟩
+
+@[simp] theorem coe_mk (f : Nat → Rat) (h : IsCauchy f) :
+    ((⟨f, h⟩ : MyPrereal) : Nat → Rat) = f := rfl
+
+/-- Repackage the Cauchy property of a `MyPrereal`. -/
+theorem prop (x : MyPrereal) :
+    ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ p q : Nat, N ≤ p → N ≤ q → absRat (x p - x q) ≤ ε :=
+  x.isCauchy
+
+/-- Build the `List Rat` of the first `n+1` absolute values of `x`. -/
+private def absList (x : Nat → Rat) : Nat → List Rat
+  | 0 => [absRat (x 0)]
+  | n+1 => absRat (x (n+1)) :: absList x n
+
+private theorem mem_absList_of_le (x : Nat → Rat) :
+    ∀ {n k : Nat}, k ≤ n → absRat (x k) ∈ absList x n
+  | 0, k, hk => by
+    have hk0 : k = 0 := by omega
+    subst hk0; simp [absList]
+  | n+1, k, hk => by
+    by_cases h : k = n + 1
+    · subst h; simp [absList]
+    · have hk' : k ≤ n := by omega
+      have := mem_absList_of_le x hk'
+      simp [absList]; right; exact this
+
+/-- Every Cauchy sequence is bounded (above in `absRat`). -/
+theorem isCauchy_bounded {x : Nat → Rat} (hx : IsCauchy x) :
+    ∃ B : Rat, 0 < B ∧ ∀ n, absRat (x n) ≤ B := by
+  rcases hx 1 (by decide) with ⟨A, hA⟩
+  -- Up to index A, we use the listMax over the list of absolute values.
+  let M : Rat := listMax 0 (absList x A)
+  -- M ≥ 0 because default is 0.
+  have hM0 : (0 : Rat) ≤ M := le_listMax_default 0 _
+  -- Helper: M < M + 1
+  have hMM1 : M < M + 1 := by
+    have h01 : (0 : Rat) < 1 := by decide
+    have hM1 : M + 0 < M + 1 := Rat.add_lt_add_left.mpr h01
+    have heq : M + 0 = M := Rat.add_zero M
+    rw [heq] at hM1; exact hM1
+  have hMM1le : M ≤ M + 1 := Rat.le_of_lt hMM1
+  refine ⟨M + 1, ?_, ?_⟩
+  · -- 0 < M + 1
+    exact Rat.lt_of_le_of_lt hM0 hMM1
+  · intro n
+    by_cases hnA : n ≤ A
+    · -- |x n| ≤ M ≤ M + 1
+      have hmem : absRat (x n) ∈ absList x A := mem_absList_of_le x hnA
+      have hle : absRat (x n) ≤ M := le_listMax 0 hmem
+      exact Rat.le_trans hle hMM1le
+    · -- n > A. |x n| ≤ |x A| + |x n - x A| ≤ M + 1
+      have hnA' : A < n := Nat.lt_of_not_le hnA
+      have hAn : A ≤ n := Nat.le_of_lt hnA'
+      have hAA : A ≤ A := Nat.le_refl _
+      have hdiff : absRat (x n - x A) ≤ 1 := hA n A hAn hAA
+      -- |x n| = |x A + (x n - x A)| ≤ |x A| + |x n - x A|
+      have heq : x A + (x n - x A) = x n := by
+        rw [Rat.sub_eq_add_neg, Rat.add_comm (x n), ← Rat.add_assoc,
+            Rat.add_neg_cancel, Rat.zero_add]
+      have htri : absRat (x n) ≤ absRat (x A) + absRat (x n - x A) := by
+        have := absRat_add_le (x A) (x n - x A)
+        rw [heq] at this; exact this
+      have hxA : absRat (x A) ≤ M := by
+        have hmem : absRat (x A) ∈ absList x A := mem_absList_of_le x hAA
+        exact le_listMax 0 hmem
+      -- combine
+      have h1 : absRat (x A) + absRat (x n - x A) ≤ M + absRat (x n - x A) :=
+        Rat.add_le_add_right.mpr hxA
+      have h2 : M + absRat (x n - x A) ≤ M + 1 :=
+        Rat.add_le_add_left.mpr hdiff
+      exact Rat.le_trans htri (Rat.le_trans h1 h2)
+
+/-- Convenience version on a `MyPrereal`. -/
+theorem bounded (x : MyPrereal) : ∃ B : Rat, 0 < B ∧ ∀ n, absRat (x n) ≤ B :=
+  isCauchy_bounded x.isCauchy
+
+end MyPrereal
+
+end Cauchy
+
 end Mgw.Reals
