@@ -858,10 +858,7 @@ theorem isCauchy_inv {x : MyPrereal} (H : ¬(x ≈ 0)) :
     exact Rat.le_of_lt (Rat.inv_pos.mpr hAA)
   have h3 : ε * (A * A) * (A * A)⁻¹ = ε := by
     rw [Rat.mul_assoc, Rat.mul_inv_cancel _ hAAne, Rat.mul_one]
-  rw [h3] at h2
-  -- Need: |x q - x p| = |x p - x q|? Actually goal uses x p, x q? Let me re-check.
-  -- Goal: absRat (x q - x p) * (absRat (x p) * absRat (x q))⁻¹ ≤ ε
-  exact Rat.le_trans h1 h2
+  grind
 
 /-- The classical inverse: send `0`-equivalent to `0`, otherwise to the
 pointwise inverse Cauchy sequence. -/
@@ -966,8 +963,7 @@ theorem inv_quotient {x x' : MyPrereal} (h : x ≈ x') : inv x ≈ inv x' := by
       Rat.mul_le_mul_of_nonneg_right hbnd (Rat.le_of_lt (Rat.inv_pos.mpr hAA'))
     have h3 : ε * (A * A') * (A * A')⁻¹ = ε := by
       rw [Rat.mul_assoc, Rat.mul_inv_cancel _ hAA'ne, Rat.mul_one]
-    rw [h3] at h2
-    exact Rat.le_trans h1 h2
+    grind
 
 end MyPrereal
 
@@ -1317,10 +1313,10 @@ theorem IsPos.mul {x y : MyPrereal} (hx : IsPos x) (hy : IsPos y) : IsPos (x * y
   have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
   show A * B ≤ x n * y n
   have h1 : A * B ≤ A * y n := Rat.mul_le_mul_of_nonneg_left (HM n hM) (Rat.le_of_lt hApos)
-  have h2 : A * y n ≤ x n * y n := by
-    apply Rat.mul_le_mul_of_nonneg_right (HN n hN)
-    exact Rat.le_of_lt (Rat.lt_of_lt_of_le hBpos (HM n hM))
-  exact Rat.le_trans h1 h2
+  have h2 : A * y n ≤ x n * y n :=
+    Rat.mul_le_mul_of_nonneg_right (HN n hN)
+      (Rat.le_of_lt (Rat.lt_of_lt_of_le hBpos (HM n hM)))
+  grind
 
 /-- Equivalent-to-zero is closed under addition. -/
 private theorem add_equiv_zero {x y : MyPrereal} (hx : x ≈ 0) (hy : y ≈ 0) :
@@ -1413,8 +1409,7 @@ private theorem mul_equiv_zero_right {x y : MyPrereal} (hy : y ≈ 0) :
   have h3 : B * (ε / B) = ε := by
     have hBi : B * B⁻¹ = 1 := Rat.mul_inv_cancel _ hBne
     rw [Rat.div_def]; grind
-  rw [h3] at h2
-  exact Rat.le_trans h1 h2
+  grind
 
 /-- Product of two non-negatives is non-negative. -/
 theorem IsNonneg.mul {x y : MyPrereal} (hx : IsNonneg x) (hy : IsNonneg y) :
