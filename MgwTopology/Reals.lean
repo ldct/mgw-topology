@@ -1099,8 +1099,7 @@ theorem add_comm (x y : MyReal) : x + y = y + x := by
   rw [add_def, add_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n + b n = b n + a n
-  exact Rat.add_comm _ _
+  show a n + b n = b n + a n; grind
 
 theorem add_assoc (x y z : MyReal) : (x + y) + z = x + (y + z) := by
   refine Quotient.inductionOn₃ x y z
@@ -1109,8 +1108,7 @@ theorem add_assoc (x y z : MyReal) : (x + y) + z = x + (y + z) := by
   rw [add_def, add_def, add_def, add_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show (a n + b n) + c n = a n + (b n + c n)
-  exact Rat.add_assoc _ _ _
+  show (a n + b n) + c n = a n + (b n + c n); grind
 
 theorem add_zero (x : MyReal) : x + 0 = x := by
   refine Quotient.inductionOn x (motive := fun x => x + 0 = x) (fun a => ?_)
@@ -1118,7 +1116,7 @@ theorem add_zero (x : MyReal) : x + 0 = x := by
   rw [add_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n + 0 = a n; exact Rat.add_zero _
+  show a n + 0 = a n; grind
 
 theorem zero_add (x : MyReal) : 0 + x = x := by
   rw [add_comm]; exact add_zero x
@@ -1129,8 +1127,7 @@ theorem neg_add_cancel (x : MyReal) : -x + x = 0 := by
   rw [neg_def, add_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show (-(a n)) + a n = 0
-  exact Rat.neg_add_cancel _
+  show (-(a n)) + a n = 0; grind
 
 theorem mul_comm (x y : MyReal) : x * y = y * x := by
   refine Quotient.inductionOn₂ x y (motive := fun x y => x * y = y * x) (fun a b => ?_)
@@ -1138,7 +1135,7 @@ theorem mul_comm (x y : MyReal) : x * y = y * x := by
   rw [mul_def, mul_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n * b n = b n * a n; exact Rat.mul_comm _ _
+  show a n * b n = b n * a n; grind
 
 theorem mul_assoc (x y z : MyReal) : (x * y) * z = x * (y * z) := by
   refine Quotient.inductionOn₃ x y z
@@ -1147,8 +1144,7 @@ theorem mul_assoc (x y z : MyReal) : (x * y) * z = x * (y * z) := by
   rw [mul_def, mul_def, mul_def, mul_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show (a n * b n) * c n = a n * (b n * c n)
-  exact Rat.mul_assoc _ _ _
+  show (a n * b n) * c n = a n * (b n * c n); grind
 
 theorem mul_one (x : MyReal) : x * 1 = x := by
   refine Quotient.inductionOn x (motive := fun x => x * 1 = x) (fun a => ?_)
@@ -1156,7 +1152,7 @@ theorem mul_one (x : MyReal) : x * 1 = x := by
   rw [mul_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n * 1 = a n; exact Rat.mul_one _
+  show a n * 1 = a n; grind
 
 theorem one_mul (x : MyReal) : 1 * x = x := by
   rw [mul_comm]; exact mul_one x
@@ -1173,7 +1169,7 @@ theorem mul_zero (x : MyReal) : x * 0 = 0 := by
   rw [mul_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n * 0 = 0; exact Rat.mul_zero _
+  show a n * 0 = 0; grind
 
 theorem zero_mul (x : MyReal) : 0 * x = 0 := by
   rw [mul_comm]; exact mul_zero x
@@ -1185,8 +1181,7 @@ theorem mul_add (x y z : MyReal) : x * (y + z) = x * y + x * z := by
   rw [add_def, mul_def, mul_def, mul_def, add_def]
   apply Quotient.sound
   apply R_of_funext; intro n
-  show a n * (b n + c n) = a n * b n + a n * c n
-  exact Rat.mul_add _ _ _
+  show a n * (b n + c n) = a n * b n + a n * c n; grind
 
 theorem add_mul (x y z : MyReal) : (x + y) * z = x * z + y * z := by
   rw [mul_comm, mul_add, mul_comm z x, mul_comm z y]
