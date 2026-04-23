@@ -1299,17 +1299,14 @@ theorem isNonneg_quotient {x x' : MyPrereal} (h : x ≈ x') (hx : IsNonneg x) :
 theorem IsPos.add {x y : MyPrereal} (hx : IsPos x) (hy : IsPos y) : IsPos (x + y) := by
   rcases hx with ⟨A, hApos, N, HN⟩
   rcases hy with ⟨B, hBpos, M, HM⟩
-  have hAB : 0 < A + B := by
-    have h1 : A + 0 < A + B := Rat.add_lt_add_left.mpr hBpos
-    have h2 : A + 0 = A := Rat.add_zero _
-    rw [h2] at h1; grind
+  have hAB : 0 < A + B := by grind
   refine ⟨A + B, hAB, max N M, fun n hn => ?_⟩
   have hN : N ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
   have hM : M ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
   show A + B ≤ x n + y n
-  have h1 : A + B ≤ x n + B := Rat.add_le_add_right.mpr (HN n hN)
-  have h2 : x n + B ≤ x n + y n := Rat.add_le_add_left.mpr (HM n hM)
-  exact Rat.le_trans h1 h2
+  have h1 := HN n hN
+  have h2 := HM n hM
+  grind
 
 /-- Product of two positives is positive. -/
 theorem IsPos.mul {x y : MyPrereal} (hx : IsPos x) (hy : IsPos y) : IsPos (x * y) := by
@@ -1907,14 +1904,9 @@ private theorem one_div_succ_pos (n : Nat) : (0 : Rat) < 1 / ((n : Rat) + 1) := 
     induction n with
     | zero => exact Rat.le_refl
     | succ k ih =>
-      have : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
+      have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
         rw [Rat.natCast_add]; rfl
-      rw [this]
-      have h01 : (0 : Rat) ≤ 1 := by decide
-      have h1 : (k : Rat) + 0 ≤ (k : Rat) + 1 := Rat.add_le_add_left.mpr h01
-      grind
-  have h01 : (0 : Rat) < 1 := by decide
-  have hk : (n : Rat) + 0 < (n : Rat) + 1 := Rat.add_lt_add_left.mpr h01
+      rw [hcast]; grind
   grind
 
 /-- Given a Cauchy `MyReal`-sequence, choose a rational approximation per
