@@ -426,16 +426,10 @@ theorem R_trans {x y z : MyPrereal} (hxy : R x y) (hyz : R y z) : R x z := by
   have htri : absRat (x n - z n) ≤ absRat (x n - y n) + absRat (y n - z n) := by
     have := absRat_add_le (x n - y n) (y n - z n)
     rw [heq] at this; exact this
-  have h1 : absRat (x n - y n) + absRat (y n - z n) ≤ ε / 2 + absRat (y n - z n) :=
-    Rat.add_le_add_right.mpr (HN n hN)
-  have h2 : ε / 2 + absRat (y n - z n) ≤ ε / 2 + ε / 2 :=
-    Rat.add_le_add_left.mpr (HM n hM')
+  have h1 := HN n hN
+  have h2 := HM n hM'
   have hsum : ε / 2 + ε / 2 = ε := half_add_half ε
-  have hcomb : ε / 2 + absRat (y n - z n) ≤ ε := by
-    have h2' := h2
-    rw [hsum] at h2'
-    exact h2'
-  exact Rat.le_trans htri (Rat.le_trans h1 hcomb)
+  grind
 
 /-- `R` is an equivalence relation. -/
 theorem R_equiv : Equivalence R :=
@@ -543,16 +537,8 @@ theorem isCauchy_add {x y : Nat → Rat} (hx : IsCauchy x) (hy : IsCauchy y) :
   have htri := absRat_add_le (x p - x q) (y p - y q)
   have h1 := HN p q hN hN2
   have h2 := HM p q hM' hM2
-  have hadd : absRat (x p - x q) + absRat (y p - y q) ≤ ε / 2 + ε / 2 := by
-    have ha : absRat (x p - x q) + absRat (y p - y q) ≤ ε / 2 + absRat (y p - y q) :=
-      Rat.add_le_add_right.mpr h1
-    have hb : ε / 2 + absRat (y p - y q) ≤ ε / 2 + ε / 2 :=
-      Rat.add_le_add_left.mpr h2
-    exact Rat.le_trans ha hb
   have hsum : ε / 2 + ε / 2 = ε := half_add_half ε
-  have hadd' : absRat (x p - x q) + absRat (y p - y q) ≤ ε := by
-    have ha := hadd; rw [hsum] at ha; exact ha
-  exact Rat.le_trans htri hadd'
+  grind
 
 instance : Add MyPrereal :=
   ⟨fun x y => ⟨fun n => x n + y n, isCauchy_add x.isCauchy y.isCauchy⟩⟩
@@ -627,19 +613,8 @@ theorem isCauchy_mul {x y : Nat → Rat} (hx : IsCauchy x) (hy : IsCauchy y) :
   have hBeq : B * (ε / (2 * B)) = ε / 2 := mul_div_two_mul hBne
   rw [hAeq] at hab1
   rw [hBeq] at hab2
-  -- htri ≤ ε/2 + ε/2 = ε
-  have hsum : absRat (x p) * absRat (y p - y q) + absRat (y q) * absRat (x p - x q)
-              ≤ ε / 2 + ε / 2 := by
-    have ha : absRat (x p) * absRat (y p - y q) + absRat (y q) * absRat (x p - x q)
-              ≤ ε / 2 + absRat (y q) * absRat (x p - x q) :=
-      Rat.add_le_add_right.mpr hab1
-    have hb : ε / 2 + absRat (y q) * absRat (x p - x q) ≤ ε / 2 + ε / 2 :=
-      Rat.add_le_add_left.mpr hab2
-    exact Rat.le_trans ha hb
   have hε2 : ε / 2 + ε / 2 = ε := half_add_half ε
-  have hfinal : absRat (x p) * absRat (y p - y q) + absRat (y q) * absRat (x p - x q) ≤ ε := by
-    have := hsum; rw [hε2] at this; exact this
-  exact Rat.le_trans htri hfinal
+  grind
 
 instance : Mul MyPrereal :=
   ⟨fun x y => ⟨fun n => x n * y n, isCauchy_mul x.isCauchy y.isCauchy⟩⟩
@@ -671,16 +646,10 @@ theorem add_quotient {x x' y y' : MyPrereal} (h : x ≈ x') (h' : y ≈ y') :
     show (x n + y n) - (x' n + y' n) = (x n - x' n) + (y n - y' n); grind
   rw [heq]
   have htri := absRat_add_le (x n - x' n) (y n - y' n)
-  have h1 : absRat (x n - x' n) + absRat (y n - y' n) ≤ ε / 2 + absRat (y n - y' n) :=
-    Rat.add_le_add_right.mpr (HN n hN)
-  have h2 : ε / 2 + absRat (y n - y' n) ≤ ε / 2 + ε / 2 :=
-    Rat.add_le_add_left.mpr (HM n hM')
-  have hcomb : absRat (x n - x' n) + absRat (y n - y' n) ≤ ε / 2 + ε / 2 :=
-    Rat.le_trans h1 h2
+  have h1 := HN n hN
+  have h2 := HM n hM'
   have hsum := half_add_half ε
-  have hcomb' : absRat (x n - x' n) + absRat (y n - y' n) ≤ ε := by
-    have := hcomb; rw [hsum] at this; exact this
-  exact Rat.le_trans htri hcomb'
+  grind
 
 /-- Multiplication respects the equivalence. -/
 theorem mul_quotient {x x' y y' : MyPrereal} (h : x ≈ x') (h' : y ≈ y') :
@@ -721,18 +690,8 @@ theorem mul_quotient {x x' y y' : MyPrereal} (h : x ≈ x') (h' : y ≈ y') :
     exact Rat.le_trans hh1 hh2
   rw [mul_div_two_mul hAne] at hab1
   rw [mul_div_two_mul hBne] at hab2
-  have hsum : absRat (x n) * absRat (y n - y' n) + absRat (y' n) * absRat (x n - x' n)
-              ≤ ε / 2 + ε / 2 := by
-    have ha : absRat (x n) * absRat (y n - y' n) + absRat (y' n) * absRat (x n - x' n)
-              ≤ ε / 2 + absRat (y' n) * absRat (x n - x' n) :=
-      Rat.add_le_add_right.mpr hab1
-    have hb : ε / 2 + absRat (y' n) * absRat (x n - x' n) ≤ ε / 2 + ε / 2 :=
-      Rat.add_le_add_left.mpr hab2
-    exact Rat.le_trans ha hb
   have hε2 : ε / 2 + ε / 2 = ε := half_add_half ε
-  have hfinal : absRat (x n) * absRat (y n - y' n) + absRat (y' n) * absRat (x n - x' n) ≤ ε := by
-    have := hsum; rw [hε2] at this; exact this
-  exact Rat.le_trans htri hfinal
+  grind
 
 /-! ### Inverse — the eventually-non-zero analysis. -/
 
@@ -1398,15 +1357,8 @@ private theorem add_equiv_zero {x y : MyPrereal} (hx : x ≈ 0) (hy : y ≈ 0) :
   rw [hsubx] at hxabs
   rw [hsuby] at hyabs
   have htri := absRat_add_le (x n) (y n)
-  have h1 : absRat (x n) + absRat (y n) ≤ ε / 2 + absRat (y n) :=
-    Rat.add_le_add_right.mpr hxabs
-  have h2 : ε / 2 + absRat (y n) ≤ ε / 2 + ε / 2 :=
-    Rat.add_le_add_left.mpr hyabs
-  have hcomb := Rat.le_trans h1 h2
   have hsum := half_add_half ε
-  have hcomb' : absRat (x n) + absRat (y n) ≤ ε := by
-    have := hcomb; rw [hsum] at this; exact this
-  exact Rat.le_trans htri hcomb'
+  grind
 
 /-- IsPos plus equivalent-to-zero is still IsPos. -/
 private theorem isPos_add_equiv_zero {x y : MyPrereal} (hxp : IsPos x) (hy0 : y ≈ 0) :
