@@ -1155,19 +1155,9 @@ theorem zero_ne_one : (0 : MyReal) ≠ 1 := by
     show 0 - 1 = -(1 : Rat); grind
   rw [heq, absRat_neg, absRat_one] at this
   -- this : 1 ≤ 1/2
-  have h12 : (1 : Rat) / 2 < 1 := by
-    rw [Rat.div_def, Rat.one_mul]
-    have h2 : (2 : Rat) > 1 := by
-      show (1 : Rat) < 2
-      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
-      exact this
-    have h2pos : (0 : Rat) < 2 := by decide
-    have h2inv : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr h2pos
-    have : (2 : Rat)⁻¹ * 1 < (2 : Rat)⁻¹ * 2 :=
-      Rat.mul_lt_mul_of_pos_left h2 h2inv
-    rw [Rat.mul_one, Rat.inv_mul_cancel _ (by decide : (2 : Rat) ≠ 0)] at this
-    exact this
-  exact (Rat.not_le.mpr h12) this
+  have hsum : (2 : Rat)⁻¹ + (2 : Rat)⁻¹ = 1 := MyPrereal.inv_two_add_inv_two
+  have h2inv : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr (by decide)
+  grind
 
 /-- `mul_inv_cancel` for non-zero reals. -/
 theorem mul_inv_cancel (x : MyReal) (hx : x ≠ 0) : x * x⁻¹ = 1 := by
@@ -1469,11 +1459,9 @@ theorem eq_zero_of_isNonneg_of_isNonneg_neg {x : MyPrereal}
     have hh : (-x) n - (0 : MyPrereal) n = -(x n) := by
       show (-(x n)) - 0 = -(x n); grind
     rw [hh] at this
-    have hg : x n - (0 : MyPrereal) n = x n := by
-      show x n - 0 = x n; grind
-    rw [hg]
+    show absRat (x n - 0) ≤ ε
     have := absRat_neg (x n) ▸ this
-    exact this
+    grind
   have hpos' : IsPos (-x) := by
     rcases h' with hp | h0
     · exact hp
@@ -1487,15 +1475,8 @@ theorem eq_zero_of_isNonneg_of_isNonneg_neg {x : MyPrereal}
   have hxN' : B ≤ -(x (max N N')) := by
     have := HN' (max N N') hbig'
     show B ≤ -(x (max N N')); exact this
-  -- x (max N N') ≥ A > 0 and -(x (max N N')) ≥ B > 0
-  -- so x (max N N') ≤ -B < 0, contradicting ≥ A > 0
-  have hxneg : x (max N N') ≤ -B := by
-    have h1 : -(- (x (max N N'))) ≤ -B := Rat.neg_le_neg hxN'
-    rw [Rat.neg_neg] at h1; exact h1
-  have hABneg : A ≤ -B := Rat.le_trans hxN hxneg
-  have hBneg : -B < 0 := by
-    have := Rat.neg_lt_neg hBpos; simpa using this
-  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le (Rat.lt_of_le_of_lt hABneg hBneg) (Rat.le_of_lt hApos))
+  -- x (max N N') ≥ A > 0 and -(x (max N N')) ≥ B > 0: contradiction
+  grind
 
 /-- A non-non-negative pre-real has non-negative negation. -/
 theorem isNonneg_neg_of_not_isNonneg {x : MyPrereal} (hx : ¬ IsNonneg x) :
@@ -1996,20 +1977,9 @@ example : (1 : MyReal) + 1 ≠ 0 := by
   have h2 : absRat (2 : Rat) = 2 := absRat_of_nonneg (by decide)
   rw [h2] at this
   have hcontra : (2 : Rat) ≤ 1/2 := this
-  have h2_gt : (1 : Rat) / 2 < 2 := by
-    rw [Rat.div_def, Rat.one_mul]
-    have h2pos : (0 : Rat) < 2 := by decide
-    have h2inv_pos : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr h2pos
-    have h2inv_le_1 : (2 : Rat)⁻¹ ≤ 1 := by
-      have hsum : (2 : Rat)⁻¹ + (2 : Rat)⁻¹ = 1 := MyPrereal.inv_two_add_inv_two
-      have h1 : (2 : Rat)⁻¹ + 0 ≤ (2 : Rat)⁻¹ + (2 : Rat)⁻¹ :=
-        Rat.add_le_add_left.mpr (Rat.le_of_lt h2inv_pos)
-      grind
-    have h1lt2 : (1 : Rat) < 2 := by
-      have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
-      exact this
-    exact Rat.lt_of_le_of_lt h2inv_le_1 h1lt2
-  exact Rat.lt_irrefl (Rat.lt_of_lt_of_le h2_gt hcontra)
+  have hsum : (2 : Rat)⁻¹ + (2 : Rat)⁻¹ = 1 := MyPrereal.inv_two_add_inv_two
+  have h2inv_pos : (0 : Rat) < (2 : Rat)⁻¹ := Rat.inv_pos.mpr (by decide)
+  grind
 
 /-- Archimedean witness exists. -/
 example (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := MyReal.archimedean x
