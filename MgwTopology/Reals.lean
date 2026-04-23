@@ -38,32 +38,17 @@ Lean core gives us `Rat.le_trans`, `Rat.le_of_lt`, etc., but no
 
 /-- Strict-then-weak transitivity for `Rat`. -/
 protected theorem Rat.lt_of_lt_of_le {a b c : Rat} (h₁ : a < b) (h₂ : b ≤ c) : a < c := by
-  rw [Rat.lt_iff_le_and_ne] at *
-  refine ⟨Rat.le_trans h₁.1 h₂, ?_⟩
-  intro hac
-  rcases h₁ with ⟨h1le, h1ne⟩
-  -- a = c, c ≤ b combined gives a = b, contradiction
-  apply h1ne
-  apply Rat.le_antisymm h1le
-  rw [hac]; exact h₂
+  grind
 
 /-- Weak-then-strict transitivity for `Rat`. -/
 protected theorem Rat.lt_of_le_of_lt {a b c : Rat} (h₁ : a ≤ b) (h₂ : b < c) : a < c := by
-  rw [Rat.lt_iff_le_and_ne] at *
-  refine ⟨Rat.le_trans h₁ h₂.1, ?_⟩
-  intro hac
-  rcases h₂ with ⟨h2le, h2ne⟩
-  apply h2ne
-  apply Rat.le_antisymm h2le
-  rw [← hac]; exact h₁
+  grind
 
 /-- Strict transitivity for `Rat`. -/
-protected theorem Rat.lt_trans {a b c : Rat} (h₁ : a < b) (h₂ : b < c) : a < c :=
-  Rat.lt_of_lt_of_le h₁ (Rat.le_of_lt h₂)
+protected theorem Rat.lt_trans {a b c : Rat} (h₁ : a < b) (h₂ : b < c) : a < c := by grind
 
 /-- Convert `¬ (a ≤ b)` for `Rat` into `b ≤ a`. -/
-protected theorem Rat.le_of_not_le {a b : Rat} (h : ¬ a ≤ b) : b ≤ a :=
-  Rat.le_of_lt (Rat.not_le.mp h)
+protected theorem Rat.le_of_not_le {a b : Rat} (h : ¬ a ≤ b) : b ≤ a := by grind
 
 /-- Absolute value on `Rat`. -/
 def absRat (x : Rat) : Rat := if 0 ≤ x then x else -x
@@ -74,21 +59,11 @@ theorem absRat_of_nonneg {x : Rat} (h : 0 ≤ x) : absRat x = x := by
 
 /-- `absRat` of a non-positive number flips the sign. -/
 theorem absRat_of_nonpos {x : Rat} (h : x ≤ 0) : absRat x = -x := by
-  unfold absRat
-  by_cases hx : 0 ≤ x
-  · have hxz : x = 0 := Rat.le_antisymm h hx
-    simp [hxz, hx]
-  · simp [hx]
+  unfold absRat; by_cases hx : 0 ≤ x <;> grind
 
 /-- The absolute value is always nonnegative. -/
 theorem absRat_nonneg (x : Rat) : 0 ≤ absRat x := by
-  unfold absRat
-  by_cases h : 0 ≤ x
-  · simp [h]
-  · simp [h]
-    have hx : x ≤ 0 := Rat.le_of_lt (Rat.not_le.mp h)
-    have : -0 ≤ -x := Rat.neg_le_neg hx
-    simpa using this
+  unfold absRat; by_cases h : 0 ≤ x <;> grind
 
 /-- `absRat 0 = 0`. -/
 @[simp] theorem absRat_zero : absRat (0 : Rat) = 0 := by
@@ -101,106 +76,35 @@ theorem absRat_nonneg (x : Rat) : 0 ≤ absRat x := by
 /-- `absRat (-x) = absRat x`. -/
 @[simp] theorem absRat_neg (x : Rat) : absRat (-x) = absRat x := by
   unfold absRat
-  by_cases h : 0 ≤ x
-  · by_cases h' : 0 ≤ -x
-    · have hx : x ≤ 0 := by
-        have := Rat.neg_le_neg h'
-        simpa using this
-      have : x = 0 := Rat.le_antisymm hx h
-      simp [this]
-    · simp [h, h']
-  · have hx : x ≤ 0 := Rat.le_of_lt (Rat.not_le.mp h)
-    have h' : 0 ≤ -x := by
-      have := Rat.neg_le_neg hx
-      simpa using this
-    simp [h, h']
+  by_cases h : 0 ≤ x <;> by_cases h' : 0 ≤ -x <;> grind
 
 /-- `x ≤ absRat x`. -/
 theorem le_absRat (x : Rat) : x ≤ absRat x := by
-  unfold absRat
-  by_cases h : 0 ≤ x
-  · simp [h]
-  · simp [h]
-    have hx : x ≤ 0 := Rat.le_of_lt (Rat.not_le.mp h)
-    have h0 : (0 : Rat) ≤ -x := by
-      have := Rat.neg_le_neg hx
-      simpa using this
-    exact Rat.le_trans hx h0
+  unfold absRat; by_cases h : 0 ≤ x <;> grind
 
 /-- `-x ≤ absRat x`. -/
 theorem neg_le_absRat (x : Rat) : -x ≤ absRat x := by
-  have := le_absRat (-x)
-  rw [absRat_neg] at this
-  exact this
+  have := le_absRat (-x); rw [absRat_neg] at this; exact this
 
 /-- `absRat x ≤ y ↔ -y ≤ x ∧ x ≤ y`. -/
 theorem absRat_le_iff {x y : Rat} : absRat x ≤ y ↔ -y ≤ x ∧ x ≤ y := by
-  constructor
-  · intro h
-    refine ⟨?_, ?_⟩
-    · -- -y ≤ x, since -x ≤ absRat x ≤ y means -y ≤ x
-      have h1 : -x ≤ y := Rat.le_trans (neg_le_absRat x) h
-      have : -y ≤ -(-x) := Rat.neg_le_neg h1
-      simpa using this
-    · exact Rat.le_trans (le_absRat x) h
-  · rintro ⟨hyx, hxy⟩
-    unfold absRat
-    by_cases h : 0 ≤ x
-    · simp [h]; exact hxy
-    · simp [h]
-      -- Need -x ≤ y from -y ≤ x
-      have : -x ≤ -(-y) := Rat.neg_le_neg hyx
-      simpa using this
+  unfold absRat; by_cases h : 0 ≤ x <;> grind
 
 /-- `absRat x < y ↔ -y < x ∧ x < y`. -/
 theorem absRat_lt_iff {x y : Rat} : absRat x < y ↔ -y < x ∧ x < y := by
-  constructor
-  · intro h
-    refine ⟨?_, ?_⟩
-    · have h1 : -x ≤ absRat x := neg_le_absRat x
-      have h2 : -x < y := Rat.lt_of_le_of_lt h1 h
-      have : -y < -(-x) := Rat.neg_lt_neg h2
-      simpa using this
-    · have h1 : x ≤ absRat x := le_absRat x
-      exact Rat.lt_of_le_of_lt h1 h
-  · rintro ⟨hyx, hxy⟩
-    unfold absRat
-    by_cases h : 0 ≤ x
-    · simp [h]; exact hxy
-    · simp [h]
-      have : -x < -(-y) := Rat.neg_lt_neg hyx
-      simpa using this
+  unfold absRat; by_cases h : 0 ≤ x <;> grind
 
 /-- Triangle inequality for `absRat`. -/
 theorem absRat_add_le (a b : Rat) : absRat (a + b) ≤ absRat a + absRat b := by
-  rw [absRat_le_iff]
-  refine ⟨?_, ?_⟩
-  · -- -(absRat a + absRat b) ≤ a + b
-    have h1 : -absRat a ≤ a := by
-      have := neg_le_absRat a
-      have h2 : -absRat a ≤ -(-a) := Rat.neg_le_neg this
-      simpa using h2
-    have h2 : -absRat b ≤ b := by
-      have := neg_le_absRat b
-      have h3 : -absRat b ≤ -(-b) := Rat.neg_le_neg this
-      simpa using h3
-    have h3 : -absRat a + -absRat b ≤ a + -absRat b :=
-      Rat.add_le_add_right.mpr h1
-    have h4 : a + -absRat b ≤ a + b := Rat.add_le_add_left.mpr h2
-    have h5 : -absRat a + -absRat b ≤ a + b := Rat.le_trans h3 h4
-    have heq : -(absRat a + absRat b) = -absRat a + -absRat b := Rat.neg_add
-    rw [heq]; exact h5
-  · -- a + b ≤ absRat a + absRat b
-    have h1 : a ≤ absRat a := le_absRat a
-    have h2 : b ≤ absRat b := le_absRat b
-    have h3 : a + b ≤ absRat a + b := Rat.add_le_add_right.mpr h1
-    have h4 : absRat a + b ≤ absRat a + absRat b := Rat.add_le_add_left.mpr h2
-    exact Rat.le_trans h3 h4
+  have ha := le_absRat a
+  have hb := le_absRat b
+  have hna := neg_le_absRat a
+  have hnb := neg_le_absRat b
+  rw [absRat_le_iff]; grind
 
 /-- The "swap" symmetry for `absRat` of a difference. -/
 theorem absRat_sub_comm (a b : Rat) : absRat (a - b) = absRat (b - a) := by
-  have h : -(a - b) = b - a := by
-    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg, Rat.neg_add, Rat.neg_neg, Rat.add_comm]
+  have h : -(a - b) = b - a := by grind
   calc absRat (a - b) = absRat (-(a - b)) := (absRat_neg _).symm
     _ = absRat (b - a) := by rw [h]
 
@@ -263,11 +167,7 @@ theorem absRat_mul (a b : Rat) : absRat (a * b) = absRat a * absRat b := by
 theorem absRat_eq_zero_iff {x : Rat} : absRat x = 0 ↔ x = 0 := by
   refine ⟨fun h => ?_, fun h => by simp [h]⟩
   unfold absRat at h
-  by_cases hx : 0 ≤ x
-  · simp [hx] at h; exact h
-  · simp [hx] at h
-    have : x = -0 := by rw [← h, Rat.neg_neg]
-    simpa using this
+  by_cases hx : 0 ≤ x <;> grind
 
 /-- `absRat x ≠ 0 ↔ x ≠ 0`. -/
 theorem absRat_ne_zero_iff {x : Rat} : absRat x ≠ 0 ↔ x ≠ 0 :=
@@ -275,12 +175,13 @@ theorem absRat_ne_zero_iff {x : Rat} : absRat x ≠ 0 ↔ x ≠ 0 :=
 
 /-- `0 < absRat x ↔ x ≠ 0`. -/
 theorem absRat_pos_iff {x : Rat} : 0 < absRat x ↔ x ≠ 0 := by
+  have h0 := absRat_nonneg x
+  have hez := @absRat_eq_zero_iff x
   refine ⟨fun h hx => ?_, fun h => ?_⟩
   · rw [hx, absRat_zero] at h; exact Rat.lt_irrefl h
-  · have h0 : 0 ≤ absRat x := absRat_nonneg x
-    rcases Rat.le_iff_lt_or_eq.mp h0 with h1 | h1
+  · rcases Rat.le_iff_lt_or_eq.mp h0 with h1 | h1
     · exact h1
-    · exfalso; exact h (absRat_eq_zero_iff.mp h1.symm)
+    · exfalso; exact h (hez.mp h1.symm)
 
 /-- Archimedean property of `Rat`: every rational is below some natural. -/
 theorem Rat.archimedean (q : Rat) : ∃ n : Nat, q < (n : Rat) := by
@@ -306,12 +207,9 @@ theorem Rat.archimedean (q : Rat) : ∃ n : Nat, q < (n : Rat) := by
     have hlt : ((q.num.toNat : Nat) : Rat) < ((q.num.toNat + 1 : Nat) : Rat) := by
       have hcast : ((q.num.toNat + 1 : Nat) : Rat) = ((q.num.toNat : Nat) : Rat) + 1 := by
         rw [Rat.natCast_add]; rfl
-      rw [hcast]
-      rw [Rat.lt_iff_sub_pos]
-      have heq : (((q.num.toNat : Nat) : Rat) + 1) - ((q.num.toNat : Nat) : Rat) = 1 := by
-        rw [Rat.sub_eq_add_neg, Rat.add_comm, ← Rat.add_assoc, Rat.neg_add_cancel, Rat.zero_add]
-      rw [heq]
-      decide
+      rw [hcast, Rat.lt_iff_sub_pos]
+      have heq : (((q.num.toNat : Nat) : Rat) + 1) - ((q.num.toNat : Nat) : Rat) = 1 := by grind
+      rw [heq]; decide
     exact Rat.lt_of_le_of_lt hle hlt
   · refine ⟨1, ?_⟩
     have hq' : q < 0 := Rat.not_le.mp hq
