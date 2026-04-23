@@ -1749,9 +1749,7 @@ private theorem add_sub_add_left_eq (x y z : MyReal) : (x + y) - (x + z) = y - z
   apply Quotient.sound
   apply R_of_funext; intro n
   rw [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.add_apply, MyPrereal.sub_apply]
-  -- Goal: (a n + b n) - (a n + c n) = b n - c n
-  -- Use a helper Rat lemma:
-  exact rat_add_sub_add_left _ _ _
+  show (a n + b n) - (a n + c n) = b n - c n; grind
 
 theorem le_trans (x y z : MyReal) (h1 : x ≤ y) (h2 : y ≤ z) : x ≤ z := by
   rw [le_def] at *
@@ -1882,17 +1880,10 @@ theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
     have h4 : B < (n : Rat) := hn
     have h5 : a m < (n : Rat) := Rat.lt_of_le_of_lt h3 h4
     have h6 : (n : Rat) ≤ ((n + 1 : Nat) : Rat) := by
-      rw [Rat.natCast_add]
-      have : (n : Rat) + 0 ≤ (n : Rat) + ((1 : Nat) : Rat) := by
-        apply Rat.add_le_add_left.mpr; decide
-      have hh : (n : Rat) + 0 = (n : Rat) := Rat.add_zero _
-      rw [hh] at this; exact this
+      rw [Rat.natCast_add]; show (n : Rat) ≤ (n : Rat) + 1; grind
     have h7 : a m ≤ ((n + 1 : Nat) : Rat) := Rat.le_trans (Rat.le_of_lt h5) h6
     -- 0 ≤ (n+1 : Rat) - a m
-    show 0 ≤ ((n + 1 : Nat) : Rat) - a m
-    have hk1 : a m + -(a m) ≤ ((n + 1 : Nat) : Rat) + -(a m) :=
-      Rat.add_le_add_right.mpr h7
-    grind
+    show 0 ≤ ((n + 1 : Nat) : Rat) - a m; grind
   · -- mk a ≠ ((n+1 : Nat) : MyReal)
     -- if mk a = ((n+1) : MyReal) then a ≈ const ↑(n+1), which means eventually |a m - (n+1)| ≤ ε
     -- but |a m| ≤ B < n < n+1, so a m < n+1 - ε for small ε. Take ε = 1.
@@ -1909,10 +1900,7 @@ theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
     have hrange := absRat_le_iff.mp this
     -- a N ≥ (n+1) - 1/2 = n + 1/2, but |a N| ≤ B < n, contradiction.
     have h1 : ((n + 1 : Nat) : Rat) - 1/2 ≤ a N := by
-      have hh := hrange.1
-      have hadd : -(1/2) + ((n + 1 : Nat) : Rat) ≤ (a N - ((n + 1 : Nat) : Rat)) + ((n + 1 : Nat) : Rat) :=
-        Rat.add_le_add_right.mpr hh
-      grind
+      have hh := hrange.1; grind
     -- But a N ≤ |a N| ≤ B < n < (n+1) - 1/2 (since 1/2 < 1)
     have h2 : a N ≤ absRat (a N) := le_absRat _
     have h3 : absRat (a N) ≤ B := hB N
@@ -1921,26 +1909,10 @@ theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
     have h6 : a N < (n : Rat) := Rat.lt_of_le_of_lt h4 h5
     -- Need (n : Rat) ≤ (n+1 : Rat) - 1/2
     have h7 : (n : Rat) ≤ ((n + 1 : Nat) : Rat) - 1/2 := by
-      -- (n+1) - 1/2 = n + 1/2 ≥ n
-      rw [Rat.natCast_add, Rat.sub_eq_add_neg, Rat.add_assoc]
-      have hh : (0 : Rat) ≤ ((1 : Nat) : Rat) + -(1/2) := by
-        show (0 : Rat) ≤ 1 + -(1/2)
-        have h12_lt_1 : (1 : Rat) / 2 < 1 := by
-          rw [Rat.div_def, Rat.one_mul]
-          have h2pos : (0 : Rat) < 2 := by decide
-          have h2gt1 : (1 : Rat) < 2 := by
-            have : ((1 : Int) : Rat) < ((2 : Int) : Rat) := by grind
-            exact this
-          have := Rat.mul_lt_mul_of_pos_left h2gt1 (Rat.inv_pos.mpr h2pos)
-          rw [Rat.mul_one, Rat.inv_mul_cancel _ (by decide : (2 : Rat) ≠ 0)] at this
-          exact this
-        have : (1 : Rat) / 2 ≤ 1 := Rat.le_of_lt h12_lt_1
-        have hh2 : (1 : Rat) / 2 + -(1/2) ≤ 1 + -(1/2) := Rat.add_le_add_right.mpr this
-        rw [Rat.add_neg_cancel] at hh2; exact hh2
+      rw [Rat.natCast_add]
+      show (n : Rat) ≤ ((n : Rat) + ((1 : Nat) : Rat)) - 1/2
       have hcast : ((1 : Nat) : Rat) = 1 := by simp
-      rw [hcast]
-      have : (n : Rat) + 0 ≤ (n : Rat) + (1 + -(1/2)) := Rat.add_le_add_left.mpr hh
-      grind
+      rw [hcast]; grind
     -- Combine: a N < n ≤ (n+1) - 1/2 ≤ a N, contradiction
     have hlast : a N < a N := Rat.lt_of_lt_of_le (Rat.lt_of_lt_of_le h6 h7) h1
     exact Rat.lt_irrefl hlast
