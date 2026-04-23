@@ -466,4 +466,137 @@ end MyPrereal
 
 end Cauchy
 
+/-! ## Section 3 — The setoid `R` and the quotient `MyReal`.
+
+Two pre-reals are equivalent iff their pointwise difference tends to zero.
+We show this is an equivalence relation, register it as a `Setoid`, and
+quotient. -/
+
+section Quotient
+
+namespace MyPrereal
+
+/-- The equivalence relation on `MyPrereal`: pointwise difference tends to
+zero. -/
+def R (x y : MyPrereal) : Prop :=
+  ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ n : Nat, N ≤ n → absRat (x n - y n) ≤ ε
+
+/-- Defining lemma for `R`. -/
+theorem R_def (x y : MyPrereal) :
+    R x y ↔ ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ n : Nat, N ≤ n → absRat (x n - y n) ≤ ε :=
+  Iff.rfl
+
+/-- `R` is reflexive. -/
+theorem R_refl (x : MyPrereal) : R x x := by
+  intro ε hε
+  refine ⟨0, fun n _ => ?_⟩
+  have : x n - x n = 0 := Rat.sub_self
+  rw [this, absRat_zero]; exact Rat.le_of_lt hε
+
+/-- `R` is symmetric. -/
+theorem R_symm {x y : MyPrereal} (h : R x y) : R y x := by
+  intro ε hε
+  rcases h ε hε with ⟨N, HN⟩
+  refine ⟨N, fun n hn => ?_⟩
+  rw [absRat_sub_comm]; exact HN n hn
+
+/-- Halving a positive rational gives a positive rational. -/
+private theorem half_pos {ε : Rat} (hε : 0 < ε) : 0 < ε / 2 := by
+  rw [Rat.div_def]
+  have h2pos : (0 : Rat) < 2 := by decide
+  have h2inv : 0 < (2 : Rat)⁻¹ := Rat.inv_pos.mpr h2pos
+  exact Rat.mul_pos hε h2inv
+
+/-- `1 + 1 = 2` over `Rat`. -/
+private theorem one_add_one_eq_two : (1 : Rat) + 1 = 2 := by
+  show ((1 : Int) : Rat) + ((1 : Int) : Rat) = ((2 : Int) : Rat)
+  rw [← Rat.intCast_add]; rfl
+
+/-- `(2:Rat)⁻¹ + (2:Rat)⁻¹ = 1`. -/
+private theorem inv_two_add_inv_two : ((2 : Rat)⁻¹ + (2 : Rat)⁻¹) = 1 := by
+  have h2ne : (2 : Rat) ≠ 0 := by decide
+  have hmul : (2 : Rat) * ((2 : Rat)⁻¹ + (2 : Rat)⁻¹) = 2 * 1 := by
+    rw [Rat.mul_add, Rat.mul_inv_cancel _ h2ne, Rat.mul_one, one_add_one_eq_two]
+  have hcancel : ((2 : Rat)⁻¹ * 2) * ((2 : Rat)⁻¹ + (2 : Rat)⁻¹)
+      = (2 : Rat)⁻¹ * 2 * 1 := by
+    rw [Rat.mul_assoc, hmul, ← Rat.mul_assoc]
+  rw [Rat.inv_mul_cancel _ h2ne, Rat.one_mul, Rat.one_mul] at hcancel
+  exact hcancel
+
+private theorem half_add_half (ε : Rat) : ε / 2 + ε / 2 = ε := by
+  rw [Rat.div_def, ← Rat.mul_add, inv_two_add_inv_two, Rat.mul_one]
+
+/-- `R` is transitive. -/
+theorem R_trans {x y z : MyPrereal} (hxy : R x y) (hyz : R y z) : R x z := by
+  intro ε hε
+  rcases hxy (ε / 2) (half_pos hε) with ⟨N, HN⟩
+  rcases hyz (ε / 2) (half_pos hε) with ⟨M, HM⟩
+  refine ⟨max N M, fun n hn => ?_⟩
+  have hN : N ≤ n := Nat.le_trans (Nat.le_max_left N M) hn
+  have hM' : M ≤ n := Nat.le_trans (Nat.le_max_right N M) hn
+  -- |x n - z n| = |(x n - y n) + (y n - z n)| ≤ |x n - y n| + |y n - z n| ≤ ε/2 + ε/2 = ε
+  have heq : (x n - y n) + (y n - z n) = x n - z n := by
+    rw [Rat.sub_eq_add_neg, Rat.sub_eq_add_neg, Rat.add_assoc, ← Rat.add_assoc (-y n),
+        Rat.neg_add_cancel, Rat.zero_add, ← Rat.sub_eq_add_neg]
+  have htri : absRat (x n - z n) ≤ absRat (x n - y n) + absRat (y n - z n) := by
+    have := absRat_add_le (x n - y n) (y n - z n)
+    rw [heq] at this; exact this
+  have h1 : absRat (x n - y n) + absRat (y n - z n) ≤ ε / 2 + absRat (y n - z n) :=
+    Rat.add_le_add_right.mpr (HN n hN)
+  have h2 : ε / 2 + absRat (y n - z n) ≤ ε / 2 + ε / 2 :=
+    Rat.add_le_add_left.mpr (HM n hM')
+  have hsum : ε / 2 + ε / 2 = ε := half_add_half ε
+  have hcomb : ε / 2 + absRat (y n - z n) ≤ ε := by
+    have h2' := h2
+    rw [hsum] at h2'
+    exact h2'
+  exact Rat.le_trans htri (Rat.le_trans h1 hcomb)
+
+/-- `R` is an equivalence relation. -/
+theorem R_equiv : Equivalence R :=
+  ⟨R_refl, R_symm, R_trans⟩
+
+end MyPrereal
+
+/-- The setoid on `MyPrereal`. -/
+instance instSetoidMyPrereal : Setoid MyPrereal where
+  r := MyPrereal.R
+  iseqv := MyPrereal.R_equiv
+
+/-- `(x ≈ y)` unfolds to the `R` predicate. -/
+theorem MyPrereal.equiv_def (x y : MyPrereal) :
+    x ≈ y ↔ ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ n, N ≤ n → absRat (x n - y n) ≤ ε :=
+  Iff.rfl
+
+/-- The real numbers, as a quotient of pre-reals by `R`. -/
+def MyReal : Type := Quotient instSetoidMyPrereal
+
+namespace MyReal
+
+/-- Send a pre-real to its equivalence class. -/
+def mk (x : MyPrereal) : MyReal := Quotient.mk instSetoidMyPrereal x
+
+@[simp] theorem mk_eq (x : MyPrereal) : Quotient.mk instSetoidMyPrereal x = mk x := rfl
+
+theorem mk_eq_iff {x y : MyPrereal} : mk x = mk y ↔ x ≈ y :=
+  ⟨Quotient.exact, Quotient.sound⟩
+
+theorem ind {motive : MyReal → Prop} (h : ∀ x : MyPrereal, motive (mk x)) :
+    ∀ r : MyReal, motive r := Quotient.ind h
+
+theorem inductionOn {motive : MyReal → Prop} (r : MyReal)
+    (h : ∀ x : MyPrereal, motive (mk x)) : motive r := Quotient.inductionOn r h
+
+theorem inductionOn₂ {motive : MyReal → MyReal → Prop} (r s : MyReal)
+    (h : ∀ x y : MyPrereal, motive (mk x) (mk y)) : motive r s :=
+  Quotient.inductionOn₂ r s h
+
+theorem inductionOn₃ {motive : MyReal → MyReal → MyReal → Prop} (r s t : MyReal)
+    (h : ∀ x y z : MyPrereal, motive (mk x) (mk y) (mk z)) : motive r s t :=
+  Quotient.inductionOn₃ r s t h
+
+end MyReal
+
+end Quotient
+
 end Mgw.Reals
