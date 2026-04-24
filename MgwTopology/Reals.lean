@@ -1889,6 +1889,312 @@ theorem prereal_close (a : MyPrereal) {ε : Rat} (hε : 0 < ε) :
     have h1 : -ε ≤ a m - a n := hbnd.1
     grind
 
+/-! ### `MyAbs` — absolute value on `MyReal`.
+
+We define `MyAbs` as the quotient lift of pointwise `absRat`. Going via the
+pointwise lift (rather than the equivalent `if 0 ≤ x then x else -x`)
+lets every algebraic property of `MyAbs` be derived directly from the
+corresponding `absRat` lemma applied at each index, with no `MyReal`-level
+case-splitting on the order. -/
+
+/-- Reverse triangle: `|absRat a - absRat b| ≤ absRat (a - b)`. -/
+private theorem absRat_sub_absRat_le (a b : Rat) :
+    absRat (absRat a - absRat b) ≤ absRat (a - b) := by
+  rw [absRat_le_iff]
+  have hba := absRat_nonneg b
+  have hab := absRat_nonneg a
+  have habab := absRat_nonneg (a - b)
+  refine ⟨?_, ?_⟩
+  · -- Goal: -(absRat (a - b)) ≤ absRat a - absRat b
+    -- Use absRat ((b - a) + a) ≤ absRat (b - a) + absRat a, and absRat (b - a) = absRat (a - b).
+    have htri := absRat_add_le (b - a) a
+    have heq : (b - a) + a = b := by grind
+    rw [heq] at htri
+    have hsym : absRat (b - a) = absRat (a - b) := absRat_sub_comm _ _
+    rw [hsym] at htri
+    -- htri : absRat b ≤ absRat (a - b) + absRat a, want: -(absRat (a - b)) ≤ absRat a - absRat b
+    grind
+  · -- Goal: absRat a - absRat b ≤ absRat (a - b)
+    have htri := absRat_add_le b (a - b)
+    have heq : b + (a - b) = a := by grind
+    rw [heq] at htri
+    grind
+
+/-- Pointwise `absRat` of a Cauchy sequence is Cauchy. -/
+theorem MyPrereal.isCauchy_abs {x : Nat → Rat} (hx : IsCauchy x) :
+    IsCauchy (fun n => absRat (x n)) := by
+  intro ε hε
+  rcases hx ε hε with ⟨N, HN⟩
+  refine ⟨N, fun p q hp hq => ?_⟩
+  -- |absRat (x p) - absRat (x q)| ≤ |x p - x q| ≤ ε
+  exact Rat.le_trans (absRat_sub_absRat_le (x p) (x q)) (HN p q hp hq)
+
+/-- Pointwise absolute value on `MyPrereal`. -/
+def MyPrereal.abs (x : MyPrereal) : MyPrereal :=
+  ⟨fun n => absRat (x n), MyPrereal.isCauchy_abs x.isCauchy⟩
+
+@[simp] theorem MyPrereal.abs_apply (x : MyPrereal) (n : Nat) :
+    (MyPrereal.abs x) n = absRat (x n) := rfl
+
+/-- `MyPrereal.abs` respects the equivalence relation. -/
+theorem MyPrereal.abs_quotient {x x' : MyPrereal} (h : x ≈ x') :
+    MyPrereal.abs x ≈ MyPrereal.abs x' := by
+  intro ε hε
+  rcases h ε hε with ⟨N, HN⟩
+  refine ⟨N, fun n hn => ?_⟩
+  show absRat ((MyPrereal.abs x) n - (MyPrereal.abs x') n) ≤ ε
+  rw [MyPrereal.abs_apply, MyPrereal.abs_apply]
+  -- |absRat (x n) - absRat (x' n)| ≤ |x n - x' n| ≤ ε
+  exact Rat.le_trans (absRat_sub_absRat_le (x n) (x' n)) (HN n hn)
+
+/-- The absolute value on `MyReal`, defined as the quotient lift of
+pointwise `absRat`. We use the pointwise lift rather than
+`if 0 ≤ x then x else -x` because every property reduces directly to a
+pointwise `absRat` lemma. -/
+def MyAbs : MyReal → MyReal :=
+  Quotient.lift (fun x => mk (MyPrereal.abs x))
+    (fun _ _ h => Quotient.sound (MyPrereal.abs_quotient h))
+
+@[simp] theorem MyAbs_mk (x : MyPrereal) : MyAbs (mk x) = mk (MyPrereal.abs x) := rfl
+
+@[simp] theorem MyAbs_zero : MyAbs 0 = 0 := by
+  show mk (MyPrereal.abs 0) = mk 0
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  show absRat ((0 : MyPrereal) n) = (0 : MyPrereal) n
+  rw [MyPrereal.zero_apply]; exact absRat_zero
+
+@[simp] theorem MyAbs_neg (x : MyReal) : MyAbs (-x) = MyAbs x := by
+  refine Quotient.inductionOn x (motive := fun x => MyAbs (-x) = MyAbs x) (fun a => ?_)
+  show MyAbs (mk (-a)) = MyAbs (mk a)
+  show mk (MyPrereal.abs (-a)) = mk (MyPrereal.abs a)
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  show absRat ((-a) n) = absRat (a n)
+  rw [MyPrereal.neg_apply]; exact absRat_neg _
+
+/-- Absolute value is non-negative. -/
+theorem MyAbs_nonneg (x : MyReal) : 0 ≤ MyAbs x := by
+  refine Quotient.inductionOn x (motive := fun x => 0 ≤ MyAbs x) (fun a => ?_)
+  show 0 ≤ mk (MyPrereal.abs a)
+  rw [zero_le_iff_isNonneg]
+  show MyPrereal.IsNonneg (MyPrereal.abs a)
+  refine MyPrereal.IsNonneg_of_nonneg 0 (fun n _ => ?_)
+  rw [MyPrereal.abs_apply]; exact absRat_nonneg _
+
+/-- Absolute-value preservation of the rational embedding. -/
+theorem k_abs (a : Rat) : MyAbs (k a) = k (absRat a) := by
+  show mk (MyPrereal.abs ⟨_, isCauchy_const a⟩) = mk ⟨_, isCauchy_const (absRat a)⟩
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  rfl
+
+/-- `MyAbs` of a difference is symmetric. -/
+theorem MyAbs_sub_comm (a b : MyReal) : MyAbs (a - b) = MyAbs (b - a) := by
+  refine Quotient.inductionOn₂ a b
+    (motive := fun a b => MyAbs (a - b) = MyAbs (b - a)) (fun x y => ?_)
+  show MyAbs (mk x - mk y) = MyAbs (mk y - mk x)
+  rw [sub_def, sub_def]
+  show mk (MyPrereal.abs (x - y)) = mk (MyPrereal.abs (y - x))
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  rw [MyPrereal.abs_apply, MyPrereal.abs_apply, MyPrereal.sub_apply, MyPrereal.sub_apply]
+  exact absRat_sub_comm _ _
+
+/-- Triangle inequality on `MyReal`. -/
+theorem MyAbs_add (a b : MyReal) : MyAbs (a + b) ≤ MyAbs a + MyAbs b := by
+  refine Quotient.inductionOn₂ a b
+    (motive := fun a b => MyAbs (a + b) ≤ MyAbs a + MyAbs b) (fun x y => ?_)
+  show MyAbs (mk x + mk y) ≤ MyAbs (mk x) + MyAbs (mk y)
+  rw [add_def, MyAbs_mk, MyAbs_mk, MyAbs_mk, add_def, le_def, sub_def]
+  show MyPrereal.IsNonneg _
+  refine MyPrereal.IsNonneg_of_nonneg 0 (fun n _ => ?_)
+  rw [MyPrereal.sub_apply, MyPrereal.add_apply,
+      MyPrereal.abs_apply, MyPrereal.abs_apply, MyPrereal.abs_apply, MyPrereal.add_apply]
+  -- 0 ≤ (absRat (x n) + absRat (y n)) - absRat (x n + y n)
+  have h := absRat_add_le (x n) (y n)
+  show 0 ≤ (absRat (x n) + absRat (y n)) - absRat (x n + y n); grind
+
+/-- A `MyPrereal` is non-negative iff for every positive ε it is eventually
+above `-ε`. This is the bridge between the order structure (which is
+defined via `IsNonneg`) and pointwise estimates. -/
+theorem MyPrereal.isNonneg_iff_eventually_neg_eps (x : MyPrereal) :
+    MyPrereal.IsNonneg x ↔
+      ∀ ε : Rat, 0 < ε → ∃ N : Nat, ∀ n, N ≤ n → -ε ≤ x n := by
+  refine ⟨fun h ε hε => ?_, fun h => ?_⟩
+  · rcases h with hpos | h0
+    · rcases hpos with ⟨δ, _, N, HN⟩
+      refine ⟨N, fun n hn => ?_⟩
+      have hxn := HN n hn
+      -- δ ≤ x n; want -ε ≤ x n. Since 0 < δ ≤ x n and -ε ≤ 0, done.
+      have hnonneg : 0 ≤ x n := Rat.le_trans (Rat.le_of_lt ‹0 < δ›) hxn
+      have hneg_le : -ε ≤ (0 : Rat) := by
+        have := Rat.le_of_lt hε
+        grind
+      exact Rat.le_trans hneg_le hnonneg
+    · rcases h0 ε hε with ⟨N, HN⟩
+      refine ⟨N, fun n hn => ?_⟩
+      have habs := HN n hn
+      -- absRat (x n - 0) ≤ ε, so -ε ≤ x n
+      have heq : x n - (0 : MyPrereal) n = x n := by
+        show x n - 0 = x n; grind
+      rw [heq] at habs
+      exact (absRat_le_iff.mp habs).1
+  · classical
+    by_cases h0 : x ≈ 0
+    · exact Or.inr h0
+    · -- Use pos_of_not_equiv_zero to find δ > 0 with δ < |x n| eventually.
+      -- Combine with hypothesis at ε = δ/2 to conclude δ/2 ≤ x n.
+      rcases MyPrereal.pos_of_not_equiv_zero h0 with ⟨δ, hδpos, N₀, HN₀⟩
+      rcases h (δ / 2) (MyPrereal.half_pos hδpos) with ⟨N₁, HN₁⟩
+      left
+      refine ⟨δ / 2, MyPrereal.half_pos hδpos, max N₀ N₁, fun n hn => ?_⟩
+      have hN0 : N₀ ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+      have hN1 : N₁ ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+      have habs : δ < absRat (x n) := HN₀ n hN0
+      have hneg : -(δ / 2) ≤ x n := HN₁ n hN1
+      -- Want: δ/2 ≤ x n. From δ < |x n|: x n > δ or x n < -δ. Hypothesis rules out x n < -δ since
+      -- -(δ/2) ≤ x n and -δ < -(δ/2) would mean x n ≥ -(δ/2) > -δ.
+      -- So x n > δ, and δ > δ/2.
+      have hsum := MyPrereal.half_add_half δ
+      -- Now case split on sign of x n
+      by_cases hxn_sign : 0 ≤ x n
+      · -- x n ≥ 0, |x n| = x n, so δ < x n, so δ/2 ≤ x n
+        have : absRat (x n) = x n := absRat_of_nonneg hxn_sign
+        rw [this] at habs; grind
+      · -- x n < 0, |x n| = -x n, so δ < -x n, so x n < -δ. But -(δ/2) ≤ x n, so -(δ/2) ≤ x n < -δ.
+        -- That gives -(δ/2) < -δ, contradicting δ/2 < δ.
+        have hxn_neg : x n ≤ 0 := Rat.le_of_lt (Rat.not_le.mp hxn_sign)
+        have : absRat (x n) = -(x n) := absRat_of_nonpos hxn_neg
+        rw [this] at habs
+        -- δ < -x n ↔ x n < -δ
+        -- combined with -(δ/2) ≤ x n: -(δ/2) ≤ x n < -δ
+        -- so δ < δ/2; contradicts δ/2 + δ/2 = δ and δ/2 > 0
+        exfalso
+        have hδ2_pos := MyPrereal.half_pos hδpos
+        grind
+
+/-- The bridge: the existing `(a ≤ ε ∧ -a ≤ ε)` Cauchy formulation is
+equivalent to `MyAbs a ≤ ε`. -/
+theorem MyAbs_le_iff (a b : MyReal) : MyAbs a ≤ b ↔ -b ≤ a ∧ a ≤ b := by
+  refine Quotient.inductionOn₂ a b
+    (motive := fun a b => MyAbs a ≤ b ↔ -b ≤ a ∧ a ≤ b) (fun x y => ?_)
+  show MyAbs (mk x) ≤ mk y ↔ -(mk y) ≤ mk x ∧ mk x ≤ mk y
+  show mk (MyPrereal.abs x) ≤ mk y ↔ -(mk y) ≤ mk x ∧ mk x ≤ mk y
+  rw [neg_def]
+  rw [le_def, le_def, le_def]
+  -- Goals: IsNonneg (mk y - mk (abs x)) ↔ IsNonneg (mk x - mk (-y)) ∧ IsNonneg (mk y - mk x)
+  rw [sub_def, sub_def, sub_def]
+  -- IsNonneg (mk (y - abs x)) ↔ IsNonneg (mk (x - (-y))) ∧ IsNonneg (mk (y - x))
+  show MyPrereal.IsNonneg _ ↔ MyPrereal.IsNonneg _ ∧ MyPrereal.IsNonneg _
+  rw [MyPrereal.isNonneg_iff_eventually_neg_eps,
+      MyPrereal.isNonneg_iff_eventually_neg_eps,
+      MyPrereal.isNonneg_iff_eventually_neg_eps]
+  refine ⟨fun h => ⟨fun ε hε => ?_, fun ε hε => ?_⟩, fun ⟨h1, h2⟩ ε hε => ?_⟩
+  · -- (x - (-y)) n ≥ -ε from (y - abs x) n ≥ -ε
+    rcases h ε hε with ⟨N, HN⟩
+    refine ⟨N, fun n hn => ?_⟩
+    have := HN n hn
+    -- (y - abs x) n = y n - absRat (x n); want (x - (-y)) n = x n - (-(y n)) = x n + y n ≥ -ε
+    -- From y n - absRat (x n) ≥ -ε: y n ≥ absRat (x n) - ε ≥ -x n - ε (using -x n ≤ absRat (x n))
+    -- so x n + y n ≥ -ε.
+    rw [MyPrereal.sub_apply, MyPrereal.abs_apply] at this
+    show -ε ≤ (x - -y) n
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply]
+    -- have : -ε ≤ y n - absRat (x n)
+    -- want: -ε ≤ x n - -(y n) = x n + y n
+    have hax := neg_le_absRat (x n)  -- -(x n) ≤ absRat (x n)
+    grind
+  · -- (y - x) n ≥ -ε from (y - abs x) n ≥ -ε
+    rcases h ε hε with ⟨N, HN⟩
+    refine ⟨N, fun n hn => ?_⟩
+    have := HN n hn
+    rw [MyPrereal.sub_apply, MyPrereal.abs_apply] at this
+    show -ε ≤ (y - x) n
+    rw [MyPrereal.sub_apply]
+    -- have : -ε ≤ y n - absRat (x n)
+    -- want: -ε ≤ y n - x n
+    -- absRat (x n) ≥ x n
+    have hax := le_absRat (x n)
+    grind
+  · -- (y - abs x) n ≥ -ε from (x - (-y)) n ≥ -ε ∧ (y - x) n ≥ -ε
+    -- Use ε for h1 and h2.
+    rcases h1 ε hε with ⟨N1, HN1⟩
+    rcases h2 ε hε with ⟨N2, HN2⟩
+    refine ⟨max N1 N2, fun n hn => ?_⟩
+    have hN1 : N1 ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+    have hN2 : N2 ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+    have h1n := HN1 n hN1
+    have h2n := HN2 n hN2
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply] at h1n
+    rw [MyPrereal.sub_apply] at h2n
+    show -ε ≤ (y - MyPrereal.abs x) n
+    rw [MyPrereal.sub_apply, MyPrereal.abs_apply]
+    -- h1n : -ε ≤ x n - -(y n) = x n + y n
+    -- h2n : -ε ≤ y n - x n
+    -- want: -ε ≤ y n - absRat (x n)
+    -- absRat (x n) = if 0 ≤ x n then x n else -(x n)
+    by_cases hx_sign : 0 ≤ x n
+    · rw [absRat_of_nonneg hx_sign]
+      -- want: -ε ≤ y n - x n; that's h2n.
+      grind
+    · have hx_le : x n ≤ 0 := Rat.le_of_lt (Rat.not_le.mp hx_sign)
+      rw [absRat_of_nonpos hx_le]
+      -- want: -ε ≤ y n - (-(x n)) = y n + x n; that's h1n.
+      grind
+
+/-- Absolute value is positive iff the argument is non-zero. -/
+theorem MyAbs_pos_iff (x : MyReal) : 0 < MyAbs x ↔ x ≠ 0 := by
+  refine ⟨fun h hx => ?_, fun hx => ?_⟩
+  · rw [hx, MyAbs_zero] at h
+    rcases h with ⟨_, hne⟩; exact hne rfl
+  · -- 0 ≤ MyAbs x always; need 0 ≠ MyAbs x.
+    refine ⟨MyAbs_nonneg x, fun heq => ?_⟩
+    -- MyAbs x = 0 → x = 0. Use MyAbs_le_iff with b = 0.
+    have hle : MyAbs x ≤ 0 := by rw [← heq]; exact le_refl _
+    rw [MyAbs_le_iff] at hle
+    -- -0 ≤ x ∧ x ≤ 0; -0 = 0 in MyReal
+    have hneg0 : -(0 : MyReal) = 0 := by
+      show -(mk 0) = mk 0
+      rw [neg_def]; apply Quotient.sound
+      apply R_of_funext; intro n
+      show -(0 : Rat) = 0; grind
+    rw [hneg0] at hle
+    -- 0 ≤ x ∧ x ≤ 0 → x = 0
+    exact hx (le_antisymm _ _ hle.2 hle.1)
+
+/-- Negation flips inequalities: `-a ≤ b ↔ -b ≤ a`. -/
+theorem neg_le_iff_neg_le (a b : MyReal) : -a ≤ b ↔ -b ≤ a := by
+  refine Quotient.inductionOn₂ a b
+    (motive := fun a b => -a ≤ b ↔ -b ≤ a) (fun x y => ?_)
+  show -(mk x) ≤ mk y ↔ -(mk y) ≤ mk x
+  rw [neg_def, neg_def, le_def, le_def, sub_def, sub_def]
+  show MyPrereal.IsNonneg _ ↔ MyPrereal.IsNonneg _
+  rw [MyPrereal.isNonneg_iff_eventually_neg_eps,
+      MyPrereal.isNonneg_iff_eventually_neg_eps]
+  refine ⟨fun h ε hε => ?_, fun h ε hε => ?_⟩
+  · rcases h ε hε with ⟨N, HN⟩
+    refine ⟨N, fun n hn => ?_⟩
+    have := HN n hn
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply] at this
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply]
+    -- this : -ε ≤ y n - -(x n); want: -ε ≤ x n - -(y n)
+    grind
+  · rcases h ε hε with ⟨N, HN⟩
+    refine ⟨N, fun n hn => ?_⟩
+    have := HN n hn
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply] at this
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply]
+    grind
+
+/-- Bridge: the existing `(a ≤ ε ∧ -a ≤ ε)` formulation in `IsCauchyMR` /
+`Converges` is equivalent to `MyAbs a ≤ ε`. -/
+theorem bound_iff_MyAbs_le (a ε : MyReal) :
+    (a ≤ ε ∧ -a ≤ ε) ↔ MyAbs a ≤ ε := by
+  rw [MyAbs_le_iff]
+  rw [show (-a ≤ ε ↔ -ε ≤ a) from neg_le_iff_neg_le a ε]
+  exact ⟨fun ⟨h1, h2⟩ => ⟨h2, h1⟩, fun ⟨h1, h2⟩ => ⟨h2, h1⟩⟩
+
 /-! ### Approximation via the prereal `n`-th term. -/
 
 /-- Helper: `1/(n+1) > 0` for `n : Nat`. -/
@@ -1904,41 +2210,415 @@ private theorem one_div_succ_pos (n : Nat) : (0 : Rat) < 1 / ((n : Rat) + 1) := 
       rw [hcast]; grind
   grind
 
+/-! ### `k`-monotonicity. -/
+
+/-- The rational embedding is order-preserving. -/
+theorem k_le_iff {a b : Rat} : k a ≤ k b ↔ a ≤ b := by
+  show mk ⟨_, _⟩ ≤ mk ⟨_, _⟩ ↔ a ≤ b
+  rw [le_def, sub_def]
+  show MyPrereal.IsNonneg _ ↔ a ≤ b
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · -- IsNonneg ⟨fun _ => b - a, _⟩ → a ≤ b
+    -- Use the eventually-≥-(-ε) characterisation with ε = (b - a) is hard if a > b.
+    -- Instead, suppose a > b, derive contradiction.
+    by_contra hba
+    have hba' : b < a := Rat.not_le.mp hba
+    -- Then b - a < 0. Pick ε = (a - b) / 2 > 0.
+    have hε_pos : 0 < (a - b) / 2 := by
+      have : 0 < a - b := by grind
+      exact MyPrereal.half_pos this
+    rw [MyPrereal.isNonneg_iff_eventually_neg_eps] at h
+    rcases h ((a - b) / 2) hε_pos with ⟨N, HN⟩
+    have hN := HN N (Nat.le_refl _)
+    rw [MyPrereal.sub_apply] at hN
+    -- hN : -((a - b) / 2) ≤ b - a (the constant value at index N)
+    show False
+    have hsum := MyPrereal.half_add_half (a - b)
+    have : 0 < a - b := by grind
+    grind
+  · rw [MyPrereal.isNonneg_iff_eventually_neg_eps]
+    intro ε hε
+    refine ⟨0, fun n _ => ?_⟩
+    rw [MyPrereal.sub_apply]
+    show -ε ≤ b - a
+    have : 0 ≤ b - a := by grind
+    grind
+
+theorem k_lt_iff {a b : Rat} : k a < k b ↔ a < b := by
+  rw [lt_def, k_le_iff]
+  refine ⟨fun ⟨h1, h2⟩ => ?_, fun h => ⟨Rat.le_of_lt h, ?_⟩⟩
+  · -- a ≤ b ∧ k a ≠ k b → a < b
+    have : a ≠ b := fun heq => h2 (by rw [heq])
+    grind
+  · intro heq
+    -- k a = k b → a = b (since k a ≤ k b and k b ≤ k a)
+    -- but we already have a < b, so b ≤ a from heq → contradiction.
+    have hba : b ≤ a := k_le_iff.mp (by rw [heq]; exact le_refl _)
+    have : a < a := Rat.lt_of_lt_of_le h hba
+    exact Rat.lt_irrefl this
+
+/-- `0 < k a ↔ 0 < a`. -/
+theorem k_pos_iff {a : Rat} : 0 < k a ↔ 0 < a := by
+  rw [show (0 : MyReal) = k 0 from rfl, k_lt_iff]
+
+/-- `k` of a natural cast equals the natural cast in `MyReal`. -/
+theorem k_natCast (n : Nat) : k (n : Rat) = (n : MyReal) := rfl
+
+/-! ### Real Archimedean-of-inverse.
+
+For every positive real `x` there is a natural `n` with `k (1/(n+1)) ≤ x`.
+Proved by combining the Archimedean property of `MyReal` (already in §5)
+with `k`-monotonicity. -/
+
+/-- Helper: `k (1/(n+1)) > 0`. -/
+theorem k_one_div_succ_pos (n : Nat) : 0 < k (1 / ((n : Rat) + 1)) :=
+  k_pos_iff.mpr (one_div_succ_pos n)
+
+/-- Helper: for a positive `Rat` `q`, there is a natural `n` with `1/(n+1) ≤ q`.
+This is essentially the contrapositive of the rational Archimedean property
+applied to `1/q`. -/
+private theorem one_div_succ_le_of_pos {q : Rat} (hq : 0 < q) :
+    ∃ n : Nat, 1 / ((n : Rat) + 1) ≤ q := by
+  -- Get N with 1/q < N (Archimedean on Rat).
+  rcases Rat.archimedean (1 / q) with ⟨N, hN⟩
+  refine ⟨N, ?_⟩
+  -- Show 1/(N+1) ≤ q, i.e., 1 ≤ q * (N+1). Use 1/q < N ≤ N+1, so 1 < q*(N+1) using q > 0.
+  -- 1/q < N+1 (since N ≤ N+1 < N+1 strict? Actually need N < N+1 true)
+  have hcast : ((N + 1 : Nat) : Rat) = (N : Rat) + 1 := by rw [Rat.natCast_add]; rfl
+  have hN' : 1 / q < (N : Rat) + 1 := by
+    have : (N : Rat) < (N : Rat) + 1 := by
+      have : (0 : Rat) < 1 := by decide
+      grind
+    exact Rat.lt_trans hN this
+  -- So 1 < q * (N+1) (multiply by q > 0)
+  have hqne : q ≠ 0 := fun h => by rw [h] at hq; exact Rat.lt_irrefl hq
+  have hone_div_q : 1 / q = q⁻¹ := by rw [Rat.div_def, Rat.one_mul]
+  rw [hone_div_q] at hN'
+  -- q⁻¹ < N+1, multiply by q: 1 < q * (N+1)
+  have h1 : q * q⁻¹ < q * ((N : Rat) + 1) :=
+    Rat.mul_lt_mul_of_pos_left hN' hq
+  rw [Rat.mul_inv_cancel _ hqne] at h1
+  -- h1 : 1 < q * (N + 1)
+  -- Need: 1 / (N+1) ≤ q.
+  -- N+1 > 0 (N ≥ 0, so N+1 ≥ 1 > 0).
+  have hNp1_pos : (0 : Rat) < (N : Rat) + 1 := by
+    have h1q : 0 < q⁻¹ := Rat.inv_pos.mpr hq
+    exact Rat.lt_trans h1q hN'
+  have hNp1_ne : ((N : Rat) + 1) ≠ 0 :=
+    fun h => by rw [h] at hNp1_pos; exact Rat.lt_irrefl hNp1_pos
+  -- 1 < q * (N+1) and (N+1) > 0 → 1/(N+1) < q (divide by N+1)
+  have h2 : 1 * ((N : Rat) + 1)⁻¹ < q * ((N : Rat) + 1) * ((N : Rat) + 1)⁻¹ :=
+    Rat.mul_lt_mul_of_pos_right h1 (Rat.inv_pos.mpr hNp1_pos)
+  rw [Rat.one_mul, Rat.mul_assoc, Rat.mul_inv_cancel _ hNp1_ne, Rat.mul_one] at h2
+  -- h2 : (N+1)⁻¹ < q. Now (1 / (N+1)) = (N+1)⁻¹ via Rat.div_def with 1 * x = x.
+  -- Convert.
+  have hdivexp : 1 / (((N : Nat) : Rat) + 1) = ((N : Rat) + 1)⁻¹ := by
+    rw [Rat.div_def, Rat.one_mul]
+  rw [hdivexp]
+  exact Rat.le_of_lt h2
+
+/-- Real Archimedean-of-inverse: every positive real has a `1/(n+1)`-bound below. -/
+theorem archimedean_inv (x : MyReal) (hx : 0 < x) :
+    ∃ n : Nat, k (1 / ((n : Rat) + 1)) ≤ x := by
+  rcases hx with ⟨h_le, h_ne⟩
+  refine Quotient.inductionOn x
+    (motive := fun x => 0 ≤ x → 0 ≠ x → ∃ n : Nat, k (1 / ((n : Rat) + 1)) ≤ x)
+    ?_ h_le h_ne
+  intro a hle hne
+  have hnn : MyPrereal.IsNonneg a := (zero_le_iff_isNonneg (mk a)).mp hle
+  have ha_nz : ¬ (a ≈ 0) := fun heq => hne (Quotient.sound heq).symm
+  have hpos : MyPrereal.IsPos a := by
+    rcases hnn with hp | hz
+    · exact hp
+    · exact absurd hz ha_nz
+  rcases hpos with ⟨δ, hδpos, N, HN⟩
+  rcases one_div_succ_le_of_pos hδpos with ⟨n₀, hn₀⟩
+  refine ⟨n₀, ?_⟩
+  show k (1 / ((n₀ : Rat) + 1)) ≤ mk a
+  show mk ⟨_, isCauchy_const _⟩ ≤ mk a
+  rw [le_def, sub_def]
+  show MyPrereal.IsNonneg _
+  refine MyPrereal.IsNonneg_of_nonneg N (fun n hn => ?_)
+  rw [MyPrereal.sub_apply]
+  show 0 ≤ a n - 1 / ((n₀ : Rat) + 1)
+  have hδle : δ ≤ a n := HN n hn
+  -- 1/(n₀+1) ≤ δ ≤ a n
+  have h := Rat.le_trans hn₀ hδle
+  grind
+
+/-! ### Approximation. -/
+
 /-- Given a Cauchy `MyReal`-sequence, choose a rational approximation per
-index using `Classical.choose` on a representative's Cauchy property. -/
+index using `Classical.choose` on a representative's Cauchy property.
+The witness is `q m`, where `q` is a chosen prereal representative of `s n`
+and `m` is the Cauchy threshold for the rational tolerance `1/(n+1)`. -/
 noncomputable def approx (s : Nat → MyReal) (n : Nat) : Rat :=
   let q : MyPrereal := Classical.choose (Quotient.exists_rep (s n))
   q (Classical.choose (q.prop (1 / ((n : Rat) + 1)) (one_div_succ_pos n)))
 
-/-! ### Completeness scaffolding.
+/-- The defining bound of `approx`: at every index, `s n` is within `1/(n+1)`
+of `k (approx s n)` in `MyReal`. -/
+theorem approx_spec (s : Nat → MyReal) (n : Nat) :
+    s n - k (approx s n) ≤ k (1 / ((n : Rat) + 1)) ∧
+    -(s n - k (approx s n)) ≤ k (1 / ((n : Rat) + 1)) := by
+  -- Unfold approx: q is the chosen representative, m the chosen index.
+  let q : MyPrereal := Classical.choose (Quotient.exists_rep (s n))
+  have hq : mk q = s n := Classical.choose_spec (Quotient.exists_rep (s n))
+  let m : Nat := Classical.choose (q.prop (1 / ((n : Rat) + 1)) (one_div_succ_pos n))
+  have hm := Classical.choose_spec (q.prop (1 / ((n : Rat) + 1)) (one_div_succ_pos n))
+  have happrox_eq : approx s n = q m := rfl
+  rw [happrox_eq, ← hq]
+  -- Now goal: mk q - k (q m) ≤ k (1/(n+1)) ∧ -(mk q - k (q m)) ≤ k (1/(n+1))
+  -- Reduce to MyPrereal level. Note k a = mk ⟨const a, _⟩.
+  have hsub_eq : mk q - k (q m) = mk (q - ⟨_, isCauchy_const (q m)⟩) := by
+    show mk q - mk ⟨_, isCauchy_const (q m)⟩ = _
+    rw [sub_def]
+  refine ⟨?_, ?_⟩
+  · rw [hsub_eq]
+    show mk _ ≤ k _
+    show mk _ ≤ mk ⟨_, isCauchy_const _⟩
+    rw [le_def, sub_def]
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg m (fun j hj => ?_)
+    rw [MyPrereal.sub_apply, MyPrereal.sub_apply]
+    show 0 ≤ 1 / ((n : Rat) + 1) - (q j - q m)
+    have habs := hm j m hj (Nat.le_refl _)
+    have hbnd := absRat_le_iff.mp habs
+    have h1 : q j - q m ≤ 1 / ((n : Rat) + 1) := hbnd.2
+    grind
+  · rw [hsub_eq]
+    show -(mk _) ≤ k _
+    rw [neg_def]
+    show mk _ ≤ mk ⟨_, isCauchy_const _⟩
+    rw [le_def, sub_def]
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg m (fun j hj => ?_)
+    rw [MyPrereal.sub_apply, MyPrereal.neg_apply, MyPrereal.sub_apply]
+    show 0 ≤ 1 / ((n : Rat) + 1) - -(q j - q m)
+    have habs := hm j m hj (Nat.le_refl _)
+    have hbnd := absRat_le_iff.mp habs
+    have h1 : -(1 / ((n : Rat) + 1)) ≤ q j - q m := hbnd.1
+    grind
 
-Proving `complete : ∀ s : Nat → MyReal, IsCauchyMR s → ∃ L, Converges s L`
-in this Mathlib-free setting requires several auxiliary facts about the
-real-valued order that we do not develop here in the interest of staying
-under the file size budget. The supporting lemmas required are:
+/-- `MyAbs`-formulated bound: `|s n - k (approx s n)| ≤ k (1/(n+1))`. -/
+theorem MyAbs_approx_spec (s : Nat → MyReal) (n : Nat) :
+    MyAbs (s n - k (approx s n)) ≤ k (1 / ((n : Rat) + 1)) :=
+  (bound_iff_MyAbs_le _ _).mp (approx_spec s n)
 
-  * monotonicity of `k`, i.e. `k a ≤ k b ↔ a ≤ b` and `k a < k b ↔ a < b`,
-  * an order Archimedean property `∀ x > 0, ∃ n : Nat, k (1/(n+1)) ≤ x`,
-  * monotonicity of subtraction, addition, and multiplication on `MyReal`,
-  * a triangle-inequality lemma for `MyReal`-valued absolute differences.
+/-! ### Auxiliary `MyReal` order arithmetic for completeness. -/
 
-With those, the upstream proof transfers verbatim using `approx` defined
-above. We expose `approx` and `IsCauchyMR`/`Converges` as the public
-API; the convergence proof for explicit Cauchy sequences (e.g., monotone
-bounded ones) can be carried out by clients using the prereal/quotient
-machinery already provided.
+/-- Right-monotonicity of addition. -/
+theorem add_le_add_right (x y : MyReal) (h : x ≤ y) (t : MyReal) : x + t ≤ y + t := by
+  rw [add_comm x t, add_comm y t]; exact add_le_add_left _ _ h _
 
-To remove every `sorry` and respect the budget, we state completeness as a
-classical existential over the prereal approximation, which is provable
-trivially: for any sequence one can always choose a candidate. The
-*correct* convergence claim is the upstream one and is left as a future
-work item in this single file. -/
+/-- Two-sided monotonicity of addition. -/
+theorem add_le_add {a b c d : MyReal} (h1 : a ≤ b) (h2 : c ≤ d) : a + c ≤ b + d :=
+  le_trans _ _ _ (add_le_add_right _ _ h1 c) (add_le_add_left _ _ h2 b)
 
-/-- Restricted "completeness": `approx s` is a definable rational
-sequence accompanying `s`, so a candidate limit exists in the obvious
-sense. The full convergence theorem is stated below. -/
-theorem complete_witness (s : Nat → MyReal) :
-    ∃ q : Nat → Rat, q = approx s := ⟨approx s, rfl⟩
+/-- Triangle inequality for differences: `|a - c| ≤ |a - b| + |b - c|`. -/
+theorem MyAbs_sub_triangle (a b c : MyReal) :
+    MyAbs (a - c) ≤ MyAbs (a - b) + MyAbs (b - c) := by
+  -- a - c = (a - b) + (b - c)
+  have heq : a - c = (a - b) + (b - c) := by
+    refine Quotient.inductionOn₃ a b c
+      (motive := fun a b c => a - c = (a - b) + (b - c)) (fun x y z => ?_)
+    show mk x - mk z = (mk x - mk y) + (mk y - mk z)
+    rw [sub_def, sub_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    rw [MyPrereal.add_apply, MyPrereal.sub_apply, MyPrereal.sub_apply, MyPrereal.sub_apply]
+    show x n - z n = (x n - y n) + (y n - z n); grind
+  rw [heq]
+  exact MyAbs_add (a - b) (b - c)
+
+/-- `k` distributes over rational addition (already proved as `k_add`); we restate for `≤`. -/
+theorem k_add_le_add (a b c : Rat) (h : a ≤ b + c) : k a ≤ k b + k c := by
+  rw [← k_add]; exact k_le_iff.mpr h
+
+/-! ### Step A: `approx s` is `Rat`-Cauchy. -/
+
+/-- Helper: for any natural `n0` and `n ≥ n0`, `1/(n+1) ≤ 1/(n0+1)` rationally. -/
+private theorem one_div_succ_mono {n0 n : Nat} (h : n0 ≤ n) :
+    1 / ((n : Rat) + 1) ≤ 1 / ((n0 : Rat) + 1) := by
+  -- (n+1) ≥ (n0+1), both positive, so reciprocals reverse.
+  have hn0p1_pos : (0 : Rat) < (n0 : Rat) + 1 := by
+    have h0 : (0 : Rat) ≤ (n0 : Rat) := by
+      induction n0 with
+      | zero => exact Rat.le_refl
+      | succ k ih =>
+        have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
+          rw [Rat.natCast_add]; rfl
+        rw [hcast]; grind
+    grind
+  have hnp1_pos : (0 : Rat) < (n : Rat) + 1 := by
+    have h0 : (0 : Rat) ≤ (n : Rat) := by
+      induction n with
+      | zero => exact Rat.le_refl
+      | succ k ih =>
+        have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
+          rw [Rat.natCast_add]; rfl
+        rw [hcast]; grind
+    grind
+  have hcast_le : (n0 : Rat) ≤ (n : Rat) := by
+    -- nat-cast monotone
+    have hn0n : (0 : Int) ≤ (n : Int) - (n0 : Int) := by exact_mod_cast Nat.zero_le (n - n0)
+    -- Hmm easier: induct on h.
+    have : ∀ m, n0 ≤ m → (n0 : Rat) ≤ (m : Rat) := by
+      intro m hm
+      induction hm with
+      | refl => exact Rat.le_refl
+      | step _ ih =>
+        rename_i j _
+        have hcast : ((j + 1 : Nat) : Rat) = (j : Rat) + 1 := by
+          rw [Rat.natCast_add]; rfl
+        rw [hcast]
+        have h01 : (0 : Rat) ≤ 1 := by decide
+        have hj : (j : Rat) ≤ (j : Rat) + 1 := by grind
+        exact Rat.le_trans ih hj
+    exact this n h
+  have hn0p1_le : (n0 : Rat) + 1 ≤ (n : Rat) + 1 := by
+    have h01 : (1 : Rat) ≤ 1 := Rat.le_refl
+    grind
+  have hn0p1_ne : ((n0 : Rat) + 1) ≠ 0 := fun h => by rw [h] at hn0p1_pos; exact Rat.lt_irrefl hn0p1_pos
+  have hnp1_ne : ((n : Rat) + 1) ≠ 0 := fun h => by rw [h] at hnp1_pos; exact Rat.lt_irrefl hnp1_pos
+  -- Show (n+1)⁻¹ ≤ (n0+1)⁻¹.
+  have hinv : ((n : Rat) + 1)⁻¹ ≤ ((n0 : Rat) + 1)⁻¹ := by
+    -- (n0+1) * (n+1)⁻¹ ≤ (n+1) * (n+1)⁻¹ = 1, so (n+1)⁻¹ ≤ (n0+1)⁻¹
+    have h1 : ((n0 : Rat) + 1) * ((n : Rat) + 1)⁻¹ ≤ ((n : Rat) + 1) * ((n : Rat) + 1)⁻¹ :=
+      Rat.mul_le_mul_of_nonneg_right hn0p1_le (Rat.le_of_lt (Rat.inv_pos.mpr hnp1_pos))
+    rw [Rat.mul_inv_cancel _ hnp1_ne] at h1
+    -- h1 : (n0+1) * (n+1)⁻¹ ≤ 1
+    -- Multiply by (n0+1)⁻¹ ≥ 0
+    have h2 := Rat.mul_le_mul_of_nonneg_left h1 (Rat.le_of_lt (Rat.inv_pos.mpr hn0p1_pos))
+    rw [← Rat.mul_assoc, Rat.inv_mul_cancel _ hn0p1_ne, Rat.one_mul, Rat.mul_one] at h2
+    exact h2
+  rw [show (1 / ((n : Rat) + 1)) = ((n : Rat) + 1)⁻¹ by rw [Rat.div_def, Rat.one_mul]]
+  rw [show (1 / ((n0 : Rat) + 1)) = ((n0 : Rat) + 1)⁻¹ by rw [Rat.div_def, Rat.one_mul]]
+  exact hinv
+
+/-- Step A: the rational approximation sequence is Cauchy. -/
+theorem isCauchy_approx (s : Nat → MyReal) (hs : IsCauchyMR s) :
+    IsCauchy (approx s) := by
+  intro ε hε
+  -- Pick n0 with 1/(n0+1) ≤ ε/3.
+  have hε3 : 0 < ε / 3 := by
+    rw [Rat.div_def]
+    have h3pos : (0 : Rat) < 3 := by decide
+    exact Rat.mul_pos hε (Rat.inv_pos.mpr h3pos)
+  rcases one_div_succ_le_of_pos hε3 with ⟨n0, hn0⟩
+  -- Cauchy of s with k(ε/3): get N₁
+  rcases hs (k (ε / 3)) (k_pos_iff.mpr hε3) with ⟨N₁, HN₁⟩
+  refine ⟨max N₁ n0, fun p q hp hq => ?_⟩
+  have hp1 : N₁ ≤ p := Nat.le_trans (Nat.le_max_left _ _) hp
+  have hq1 : N₁ ≤ q := Nat.le_trans (Nat.le_max_left _ _) hq
+  have hpn0 : n0 ≤ p := Nat.le_trans (Nat.le_max_right _ _) hp
+  have hqn0 : n0 ≤ q := Nat.le_trans (Nat.le_max_right _ _) hq
+  -- MyAbs (s p - s q) ≤ k (ε/3)
+  have hsab : MyAbs (s p - s q) ≤ k (ε / 3) := (bound_iff_MyAbs_le _ _).mp (HN₁ p q hp1 hq1)
+  -- MyAbs (s p - k (approx s p)) ≤ k (1/(p+1)) ≤ k (1/(n0+1)) ≤ k (ε/3)
+  have hpapp_a : MyAbs (s p - k (approx s p)) ≤ k (1 / ((p : Rat) + 1)) :=
+    MyAbs_approx_spec s p
+  have hpapp_b : k (1 / ((p : Rat) + 1)) ≤ k (ε / 3) :=
+    k_le_iff.mpr (Rat.le_trans (one_div_succ_mono hpn0) hn0)
+  have hpapp : MyAbs (s p - k (approx s p)) ≤ k (ε / 3) :=
+    le_trans _ _ _ hpapp_a hpapp_b
+  -- Same for q:
+  have hqapp_a : MyAbs (s q - k (approx s q)) ≤ k (1 / ((q : Rat) + 1)) :=
+    MyAbs_approx_spec s q
+  have hqapp_b : k (1 / ((q : Rat) + 1)) ≤ k (ε / 3) :=
+    k_le_iff.mpr (Rat.le_trans (one_div_succ_mono hqn0) hn0)
+  have hqapp : MyAbs (s q - k (approx s q)) ≤ k (ε / 3) :=
+    le_trans _ _ _ hqapp_a hqapp_b
+  -- We need: MyAbs (k (approx s p) - k (approx s q)) ≤ k ε.
+  -- Triangle: MyAbs (k (app p) - k (app q)) ≤ MyAbs (k (app p) - s p) + MyAbs (s p - k (app q))
+  --   And MyAbs (s p - k (app q)) ≤ MyAbs (s p - s q) + MyAbs (s q - k (app q)).
+  have hsubcomm : MyAbs (k (approx s p) - s p) = MyAbs (s p - k (approx s p)) :=
+    MyAbs_sub_comm _ _
+  have hpapp' : MyAbs (k (approx s p) - s p) ≤ k (ε / 3) := by
+    rw [hsubcomm]; exact hpapp
+  have htri1 : MyAbs (k (approx s p) - k (approx s q))
+              ≤ MyAbs (k (approx s p) - s p) + MyAbs (s p - k (approx s q)) :=
+    MyAbs_sub_triangle _ _ _
+  have htri2 : MyAbs (s p - k (approx s q))
+              ≤ MyAbs (s p - s q) + MyAbs (s q - k (approx s q)) :=
+    MyAbs_sub_triangle _ _ _
+  -- Combine
+  have hsum1 : MyAbs (s p - k (approx s q)) ≤ k (ε / 3) + k (ε / 3) :=
+    le_trans _ _ _ htri2 (add_le_add hsab hqapp)
+  have hsum2 : MyAbs (k (approx s p) - k (approx s q)) ≤ k (ε / 3) + (k (ε / 3) + k (ε / 3)) :=
+    le_trans _ _ _ htri1 (add_le_add hpapp' hsum1)
+  -- ε/3 + ε/3 + ε/3 = ε, so RHS = k ε.
+  have hε_third : ε / 3 + (ε / 3 + ε / 3) = ε := by
+    have h3ne : (3 : Rat) ≠ 0 := by decide
+    have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3ne
+    rw [Rat.div_def]; grind
+  have hsumk : k (ε / 3) + (k (ε / 3) + k (ε / 3)) = k ε := by
+    rw [← k_add, ← k_add, hε_third]
+  rw [hsumk] at hsum2
+  -- Final: MyAbs (k(app p) - k(app q)) ≤ k ε. By k_abs and k_le_iff:
+  -- MyAbs (k (app p) - k (app q)) = MyAbs (k (app p - app q)) = k (absRat (app p - app q)).
+  have hk_diff : k (approx s p) - k (approx s q) = k (approx s p - approx s q) := by
+    rw [k_sub]
+  rw [hk_diff, k_abs] at hsum2
+  -- hsum2 : k (absRat (...)) ≤ k ε
+  exact k_le_iff.mp hsum2
+
+/-! ### Step B & C: completeness theorem. -/
+
+/-- The completeness theorem: every `MyReal`-valued Cauchy sequence converges. -/
+theorem complete (s : Nat → MyReal) (hs : IsCauchyMR s) :
+    ∃ L : MyReal, Converges s L := by
+  -- L is the prereal approximation lifted to MyReal.
+  let q : MyPrereal := ⟨approx s, isCauchy_approx s hs⟩
+  refine ⟨mk q, ?_⟩
+  intro ε hε
+  -- Pick n0 with k (1/(n0+1)) ≤ ε.
+  rcases archimedean_inv ε hε with ⟨n0, hn0⟩
+  -- We aim to bound MyAbs (s n - L) ≤ k (1/(n0+1)) ≤ ε.
+  -- Use ε/2 split: δ' = (1/(n0+1))/2 rationally.
+  let δ : Rat := 1 / ((n0 : Rat) + 1)
+  have hδpos : 0 < δ := one_div_succ_pos n0
+  have hδ2pos : 0 < δ / 2 := MyPrereal.half_pos hδpos
+  -- Cauchy of s with k(δ/2): get N₁
+  rcases hs (k (δ / 2)) (k_pos_iff.mpr hδ2pos) with ⟨N₁, HN₁⟩
+  -- Find n1 with 1/(n1+1) ≤ δ/2 (rationally Archimedean).
+  rcases one_div_succ_le_of_pos hδ2pos with ⟨n1, hn1⟩
+  -- prereal_close on q: for m ≥ N₂, mk q - k (q m) ≤ k (δ/2) and -(...) ≤ k(δ/2).
+  rcases prereal_close q hδ2pos with ⟨N₂, HN₂⟩
+  refine ⟨max N₁ (max n1 N₂), fun n hn => ?_⟩
+  have hN1 : N₁ ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
+  have hrest : max n1 N₂ ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
+  have hn1n : n1 ≤ n := Nat.le_trans (Nat.le_max_left _ _) hrest
+  have hN2n : N₂ ≤ n := Nat.le_trans (Nat.le_max_right _ _) hrest
+  -- MyAbs (s n - k (approx s n)) ≤ k (1/(n+1)) ≤ k (1/(n1+1)) ≤ k (δ/2)
+  have happ_a : MyAbs (s n - k (approx s n)) ≤ k (1 / ((n : Rat) + 1)) :=
+    MyAbs_approx_spec s n
+  have happ_b : k (1 / ((n : Rat) + 1)) ≤ k (δ / 2) :=
+    k_le_iff.mpr (Rat.le_trans (one_div_succ_mono hn1n) hn1)
+  have happ : MyAbs (s n - k (approx s n)) ≤ k (δ / 2) :=
+    le_trans _ _ _ happ_a happ_b
+  -- mk q - k (q n) bound:
+  have hLapp : MyAbs (mk q - k (approx s n)) ≤ k (δ / 2) := by
+    -- approx s n = q n by definition
+    have : (q : MyPrereal) n = approx s n := rfl
+    have hq_n : k ((q : MyPrereal) n) = k (approx s n) := rfl
+    rw [← hq_n]
+    exact (bound_iff_MyAbs_le _ _).mp (HN₂ n hN2n)
+  -- Triangle: MyAbs (s n - mk q) ≤ MyAbs (s n - k (approx s n)) + MyAbs (k (approx s n) - mk q)
+  have hLapp' : MyAbs (k (approx s n) - mk q) ≤ k (δ / 2) := by
+    rw [MyAbs_sub_comm]; exact hLapp
+  have htri : MyAbs (s n - mk q) ≤ MyAbs (s n - k (approx s n)) + MyAbs (k (approx s n) - mk q) :=
+    MyAbs_sub_triangle _ _ _
+  have htotal : MyAbs (s n - mk q) ≤ k (δ / 2) + k (δ / 2) :=
+    le_trans _ _ _ htri (add_le_add happ hLapp')
+  -- δ/2 + δ/2 = δ
+  have hsum : (δ / 2) + (δ / 2) = δ := MyPrereal.half_add_half δ
+  have hsumk : k (δ / 2) + k (δ / 2) = k δ := by rw [← k_add, hsum]
+  rw [hsumk] at htotal
+  -- htotal : MyAbs (s n - mk q) ≤ k δ.
+  -- And k δ ≤ ε from hn0.
+  have hε_bound : MyAbs (s n - mk q) ≤ ε := le_trans _ _ _ htotal hn0
+  exact (bound_iff_MyAbs_le _ _).mpr hε_bound
 
 end MyReal
 
@@ -1973,6 +2653,14 @@ example (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := MyReal.archimedean x
 
 /-- The rational embedding preserves addition. -/
 example (a b : Rat) : MyReal.k (a + b) = MyReal.k a + MyReal.k b := MyReal.k_add a b
+
+/-- Cauchy completeness: every Cauchy sequence converges. -/
+example (s : Nat → MyReal) (hs : MyReal.IsCauchyMR s) :
+    ∃ L : MyReal, MyReal.Converges s L := MyReal.complete s hs
+
+/-- Triangle inequality. -/
+example (a b : MyReal) : MyReal.MyAbs (a + b) ≤ MyReal.MyAbs a + MyReal.MyAbs b :=
+  MyReal.MyAbs_add a b
 
 end SanityChecks
 
