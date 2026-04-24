@@ -1889,6 +1889,219 @@ theorem prereal_close (a : MyPrereal) {ε : Rat} (hε : 0 < ε) :
     have h1 : -ε ≤ a m - a n := hbnd.1
     grind
 
+/-! ### Max and MyAbs.
+
+We define `max` on `MyReal` classically using `Classical.dec` on `≤`, then
+define `MyAbs x := max x (-x)`. This places `MyAbs` at the `MyReal` level so
+that all `MyAbs` lemmas reduce to facts about the linear order rather than
+descending into Cauchy representatives. -/
+
+/-- Maximum of two reals (classical). -/
+noncomputable def maxR (x y : MyReal) : MyReal := by
+  classical
+  exact if x ≤ y then y else x
+
+noncomputable instance : Max MyReal := ⟨maxR⟩
+
+theorem max_eq_maxR (x y : MyReal) : max x y = maxR x y := rfl
+
+theorem maxR_of_le {x y : MyReal} (h : x ≤ y) : maxR x y = y := by
+  unfold maxR
+  classical
+  rw [if_pos h]
+
+theorem maxR_of_not_le {x y : MyReal} (h : ¬ x ≤ y) : maxR x y = x := by
+  unfold maxR
+  classical
+  rw [if_neg h]
+
+theorem max_of_le {x y : MyReal} (h : x ≤ y) : max x y = y := maxR_of_le h
+
+theorem max_of_not_le {x y : MyReal} (h : ¬ x ≤ y) : max x y = x := maxR_of_not_le h
+
+theorem le_max_left (x y : MyReal) : x ≤ max x y := by
+  classical
+  by_cases h : x ≤ y
+  · rw [max_of_le h]; exact h
+  · rw [max_of_not_le h]; exact le_refl x
+
+theorem le_max_right (x y : MyReal) : y ≤ max x y := by
+  classical
+  by_cases h : x ≤ y
+  · rw [max_of_le h]; exact le_refl y
+  · rw [max_of_not_le h]
+    rcases le_total x y with h1 | h1
+    · exact absurd h1 h
+    · exact h1
+
+theorem max_le_iff {x y z : MyReal} : max x y ≤ z ↔ x ≤ z ∧ y ≤ z := by
+  classical
+  refine ⟨fun h => ?_, fun ⟨h1, h2⟩ => ?_⟩
+  · by_cases hxy : x ≤ y
+    · rw [max_of_le hxy] at h; exact ⟨le_trans _ _ _ hxy h, h⟩
+    · rw [max_of_not_le hxy] at h
+      have hyx : y ≤ x := by
+        rcases le_total x y with hh | hh
+        · exact absurd hh hxy
+        · exact hh
+      exact ⟨h, le_trans _ _ _ hyx h⟩
+  · by_cases hxy : x ≤ y
+    · rw [max_of_le hxy]; exact h2
+    · rw [max_of_not_le hxy]; exact h1
+
+theorem max_comm (x y : MyReal) : max x y = max y x := by
+  apply le_antisymm
+  · rw [max_le_iff]; exact ⟨le_max_right _ _, le_max_left _ _⟩
+  · rw [max_le_iff]; exact ⟨le_max_right _ _, le_max_left _ _⟩
+
+theorem max_self (x : MyReal) : max x x = x := max_of_le (le_refl x)
+
+/-- Absolute value on `MyReal`, defined at the `MyReal` level so that all
+`MyAbs` lemmas reduce to facts about the linear order rather than the
+underlying Cauchy representative. -/
+noncomputable def MyAbs (x : MyReal) : MyReal := max x (-x)
+
+/-- The absolute value of `0` is `0`. -/
+@[simp] theorem MyAbs_zero : MyAbs (0 : MyReal) = 0 := by
+  unfold MyAbs
+  -- max 0 (-0) = max 0 0 = 0
+  have hneg : -(0 : MyReal) = 0 := by
+    show -(mk 0) = mk 0
+    rw [neg_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    show -(0 : Rat) = 0; exact Rat.neg_zero
+  rw [hneg, max_self]
+
+/-- `MyAbs (-x) = MyAbs x`. -/
+theorem MyAbs_neg (x : MyReal) : MyAbs (-x) = MyAbs x := by
+  unfold MyAbs
+  -- max (-x) (--x) = max (-x) x = max x (-x)
+  have hnn : -(-x) = x := by
+    refine Quotient.inductionOn x (motive := fun x => -(-x) = x) (fun a => ?_)
+    show -(-(mk a)) = mk a
+    rw [neg_def, neg_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    show -(-(a n)) = a n; grind
+  rw [hnn, max_comm]
+
+/-- The absolute value is non-negative. -/
+theorem MyAbs_nonneg (x : MyReal) : 0 ≤ MyAbs x := by
+  unfold MyAbs
+  -- 0 ≤ max x (-x): since x + (-x) = 0, one of x, -x is ≥ 0.
+  rcases le_total 0 x with h | h
+  · exact le_trans _ _ _ h (le_max_left _ _)
+  · -- x ≤ 0 ⇒ 0 ≤ -x
+    have hnx : 0 ≤ -x := by
+      -- 0 ≤ -x ↔ -x - 0 = -x is nonneg, i.e. -x + 0 = -x.
+      -- Actually we want: 0 ≤ -x. Equivalent: -x - 0 IsNonneg, i.e. -x IsNonneg.
+      -- We have x ≤ 0, i.e., 0 - x = -x is IsNonneg.
+      rw [le_def]
+      -- IsNonneg (-x - 0). -x - 0 = -x.
+      have heq : -x - 0 = -x := by
+        show -x + -0 = -x
+        have : -(0 : MyReal) = 0 := by
+          show -(mk 0) = mk 0
+          rw [neg_def]
+          apply Quotient.sound
+          apply R_of_funext; intro n
+          show -(0 : Rat) = 0; exact Rat.neg_zero
+        rw [this, add_zero]
+      rw [heq]
+      -- IsNonneg (-x): from x ≤ 0, we have 0 - x = -x is IsNonneg.
+      have h0x : IsNonneg (0 - x) := h
+      have heq2 : 0 - x = -x := by
+        show 0 + -x = -x
+        rw [zero_add]
+      rw [← heq2]; exact h0x
+    exact le_trans _ _ _ hnx (le_max_right _ _)
+
+/-- `MyAbs x = x` when `x` is non-negative. -/
+theorem MyAbs_eq_self_of_nonneg {x : MyReal} (hx : 0 ≤ x) : MyAbs x = x := by
+  unfold MyAbs
+  -- max x (-x) = x: need -x ≤ x.
+  -- 0 ≤ x ⇒ -x ≤ 0 ≤ x, so by max_le_iff and le_refl x: max x (-x) ≤ x and x ≤ max x (-x).
+  apply le_antisymm
+  · rw [max_le_iff]
+    refine ⟨le_refl x, ?_⟩
+    -- -x ≤ x: from 0 ≤ x, we have -x ≤ 0 (negation reverses), and 0 ≤ x.
+    -- Show -x ≤ 0 first.
+    have hnx : -x ≤ 0 := by
+      rw [le_def]
+      -- IsNonneg (0 - -x) = IsNonneg x.
+      have heq : (0 : MyReal) - (-x) = x := by
+        show 0 + -(-x) = x
+        have hnn : -(-x) = x := by
+          refine Quotient.inductionOn x (motive := fun x => -(-x) = x) (fun a => ?_)
+          show -(-(mk a)) = mk a
+          rw [neg_def, neg_def]
+          apply Quotient.sound
+          apply R_of_funext; intro n
+          show -(-(a n)) = a n; grind
+        rw [hnn, zero_add]
+      rw [heq]; rwa [zero_le_iff_isNonneg] at hx
+    exact le_trans _ _ _ hnx hx
+  · exact le_max_left _ _
+
+/-- `MyAbs x = -x` when `x` is non-positive. -/
+theorem MyAbs_eq_neg_of_nonpos {x : MyReal} (hx : x ≤ 0) : MyAbs x = -x := by
+  -- MyAbs x = MyAbs (-x) = -x (since 0 ≤ -x)
+  rw [← MyAbs_neg]
+  apply MyAbs_eq_self_of_nonneg
+  -- 0 ≤ -x from x ≤ 0
+  rw [le_def]
+  have heq : (0 : MyReal) - x = -x := by
+    show 0 + -x = -x; rw [zero_add]
+  have heq2 : -x - 0 = -x := by
+    show -x + -0 = -x
+    have : -(0 : MyReal) = 0 := by
+      show -(mk 0) = mk 0
+      rw [neg_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      show -(0 : Rat) = 0; exact Rat.neg_zero
+    rw [this, add_zero]
+  rw [heq2]
+  rw [le_def] at hx
+  rw [heq] at hx
+  exact hx
+
+/-- Helper: `x - (-y) = x + y` over `MyReal`. This is definitional once you
+expand `Sub` and `-(-y) = y`. -/
+private theorem sub_neg_eq_add (x y : MyReal) : x - (-y) = x + y := by
+  refine Quotient.inductionOn₂ x y
+    (motive := fun x y => x - (-y) = x + y) (fun u v => ?_)
+  show (mk u) + -(-(mk v)) = mk u + mk v
+  rw [neg_def, neg_def, add_def, add_def]
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  show u n + -(-(v n)) = u n + v n; grind
+
+/-- The defining `↔` form of `MyAbs ≤`. -/
+theorem MyAbs_le_iff {a b : MyReal} : MyAbs a ≤ b ↔ -b ≤ a ∧ a ≤ b := by
+  unfold MyAbs
+  rw [max_le_iff]
+  refine ⟨fun ⟨h1, h2⟩ => ⟨?_, h1⟩, fun ⟨h1, h2⟩ => ⟨h2, ?_⟩⟩
+  · -- -a ≤ b → -b ≤ a: IsNonneg (b - -a) = IsNonneg (b + a) = IsNonneg (a + b)??
+    -- Goal: a - -b is IsNonneg, i.e., a + b is IsNonneg.
+    -- Have: b - -a is IsNonneg, i.e., b + a is IsNonneg = a + b is IsNonneg.
+    rw [le_def] at h2 ⊢
+    rw [sub_neg_eq_add] at h2; rw [sub_neg_eq_add, add_comm]; exact h2
+  · rw [le_def] at h1 ⊢
+    rw [sub_neg_eq_add] at h1; rw [sub_neg_eq_add, add_comm]; exact h1
+
+/-- Bridge lemma: the `(a ≤ ε ∧ -a ≤ ε)` form used in `IsCauchyMR` and
+`Converges` is equivalent to `MyAbs a ≤ ε`. -/
+theorem bound_iff_MyAbs_le {a ε : MyReal} :
+    (a ≤ ε ∧ -a ≤ ε) ↔ MyAbs a ≤ ε := by
+  rw [MyAbs_le_iff]
+  refine ⟨fun ⟨h1, h2⟩ => ⟨?_, h1⟩, fun ⟨h1, h2⟩ => ⟨h2, ?_⟩⟩
+  · rw [le_def] at h2 ⊢
+    rw [sub_neg_eq_add] at h2; rw [sub_neg_eq_add, add_comm]; exact h2
+  · rw [le_def] at h1 ⊢
+    rw [sub_neg_eq_add] at h1; rw [sub_neg_eq_add, add_comm]; exact h1
+
 /-! ### Approximation via the prereal `n`-th term. -/
 
 /-- Helper: `1/(n+1) > 0` for `n : Nat`. -/
