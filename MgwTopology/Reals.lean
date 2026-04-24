@@ -2489,48 +2489,36 @@ theorem exists_k_le_of_pos {x : MyReal} (hx : 0 < x) :
   have := HN n hn
   grind
 
-/-- Real Archimedean of inverse: for every positive real, there is a natural
-`n` with `1/(n+1) ≤ x` (under `k`). -/
-theorem archimedean_inv (x : MyReal) (hx : 0 < x) :
-    ∃ n : Nat, k (1 / ((n : Rat) + 1)) ≤ x := by
-  rcases exists_k_le_of_pos hx with ⟨δ, hδpos, hδle⟩
-  -- Want k (1/(n+1)) ≤ k δ ≤ x. Pick n with δ⁻¹ ≤ n; then 1/(n+1) ≤ 1/n ≤ δ.
-  -- Easier: pick n with 1/δ < n. Then n > 1/δ, so n+1 > 1/δ, so 1/(n+1) < δ.
-  rcases Rat.archimedean (1 / δ) with ⟨n, hn⟩
-  refine ⟨n, ?_⟩
-  -- k (1/(n+1)) ≤ x.
-  refine le_trans _ _ _ ?_ hδle
-  -- k (1/(n+1)) ≤ k δ via k_le_iff
-  rw [k_le_iff]
-  -- 1/(n+1) ≤ δ. We have 1/δ < n, so 1/δ < n+1 (since n < n+1), so δ⁻¹ < n+1.
-  -- Hence (n+1) > 0 and δ * (n+1) > 1, so 1/(n+1) < δ.
+/-- Cast lemma: `(n : Rat) ≥ 0` for any `n : Nat`. -/
+private theorem natCast_nonneg_rat (n : Nat) : (0 : Rat) ≤ (n : Rat) := by
+  induction n with
+  | zero => exact Rat.le_refl
+  | succ k ih =>
+    have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
+      rw [Rat.natCast_add]; rfl
+    rw [hcast]; grind
+
+/-- Shared Archimedean-style bound: if `δ > 0` and `1/δ < (n : Rat) + 1`, then
+`1/((n : Rat) + 1) ≤ δ`. Used by `archimedean_inv`, `approx_isCauchy`, and
+`complete` to discharge the rational `ε/3`-style threshold. -/
+private theorem inv_succ_le_of_le (n : Nat) {δ : Rat} (hδpos : 0 < δ)
+    (hlt : (1 : Rat) / δ < (n : Rat) + 1) :
+    (1 : Rat) / ((n : Rat) + 1) ≤ δ := by
   have hn1pos : (0 : Rat) < (n : Rat) + 1 := by
-    have h0n : (0 : Rat) ≤ (n : Rat) := by
-      induction n with
-      | zero => exact Rat.le_refl
-      | succ k ih =>
-        have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
-          rw [Rat.natCast_add]; rfl
-        rw [hcast]; grind
+    have h0n : (0 : Rat) ≤ (n : Rat) := natCast_nonneg_rat n
     grind
   have hn1ne : ((n : Rat) + 1) ≠ 0 := fun h => by rw [h] at hn1pos; exact Rat.lt_irrefl hn1pos
   have hδne : δ ≠ 0 := fun h => by rw [h] at hδpos; exact Rat.lt_irrefl hδpos
-  -- 1/δ < n ≤ n+1, so 1/δ < n+1.
-  have hnlt : (1 : Rat) / δ < (n : Rat) + 1 := by
-    have hnle : (n : Rat) ≤ (n : Rat) + 1 := by grind
-    exact Rat.lt_of_lt_of_le hn hnle
-  -- So 1 < δ * (n+1) (multiply both sides by δ > 0).
+  -- So 1 < δ * (n+1).
   have hone : (1 : Rat) < δ * ((n : Rat) + 1) := by
-    have hh : (1 / δ) * δ < ((n : Rat) + 1) * δ := by
-      have := Rat.mul_lt_mul_of_pos_right hnlt hδpos
-      exact this
+    have hh : (1 / δ) * δ < ((n : Rat) + 1) * δ :=
+      Rat.mul_lt_mul_of_pos_right hlt hδpos
     have h1 : (1 / δ) * δ = 1 := by
       rw [Rat.div_def, Rat.one_mul, Rat.inv_mul_cancel _ hδne]
     rw [h1, Rat.mul_comm ((n : Rat) + 1) δ] at hh
     exact hh
   -- Hence 1/(n+1) < δ.
   have h_inv_lt : (1 : Rat) / ((n : Rat) + 1) < δ := by
-    -- Multiply hone by 1/(n+1) > 0.
     have h_inv_pos : (0 : Rat) < 1 / ((n : Rat) + 1) := one_div_succ_pos n
     have hh : 1 * (1 / ((n : Rat) + 1)) < (δ * ((n : Rat) + 1)) * (1 / ((n : Rat) + 1)) :=
       Rat.mul_lt_mul_of_pos_right hone h_inv_pos
@@ -2539,6 +2527,22 @@ theorem archimedean_inv (x : MyReal) (hx : 0 < x) :
       rw [Rat.div_def, Rat.one_mul, Rat.mul_assoc, Rat.mul_inv_cancel _ hn1ne, Rat.mul_one]
     rw [h1, h2] at hh; exact hh
   exact Rat.le_of_lt h_inv_lt
+
+/-- Real Archimedean of inverse: for every positive real, there is a natural
+`n` with `1/(n+1) ≤ x` (under `k`). -/
+theorem archimedean_inv (x : MyReal) (hx : 0 < x) :
+    ∃ n : Nat, k (1 / ((n : Rat) + 1)) ≤ x := by
+  rcases exists_k_le_of_pos hx with ⟨δ, hδpos, hδle⟩
+  -- Want k (1/(n+1)) ≤ k δ ≤ x. Pick n with 1/δ < n; then 1/δ < n+1.
+  rcases Rat.archimedean (1 / δ) with ⟨n, hn⟩
+  refine ⟨n, ?_⟩
+  refine le_trans _ _ _ ?_ hδle
+  rw [k_le_iff]
+  -- 1/δ < n ≤ n+1, so 1/δ < n+1.
+  have hnlt : (1 : Rat) / δ < (n : Rat) + 1 := by
+    have hnle : (n : Rat) ≤ (n : Rat) + 1 := by grind
+    exact Rat.lt_of_lt_of_le hn hnle
+  exact inv_succ_le_of_le n hδpos hnlt
 
 /-! ### The completeness theorem. -/
 
@@ -2574,63 +2578,38 @@ theorem approx_isCauchy (s : Nat → MyReal) (hs : IsCauchyMR s) :
     rw [Rat.div_def]
     exact Rat.mul_pos (by decide) (Rat.inv_pos.mpr hε)
   rcases Rat.archimedean (3 / ε) with ⟨N₁, hN₁⟩
-  -- 3/ε < N₁, so ε/3 > 1/N₁ ≥ 1/(N₁+1) (need N₁ ≥ 1).
+  -- 3/ε < N₁, so ε/3 > 1/N₁ ≥ 1/(N₁+1).
+  have hεne : ε ≠ 0 := fun h => by rw [h] at hε; exact Rat.lt_irrefl hε
+  -- Convert `3/ε` to `1/(ε/3)`: prove `1/(ε/3) = 3/ε`.
+  have h_inv_eq : (1 : Rat) / (ε / 3) = 3 / ε := by
+    have h3ne : (3 : Rat) ≠ 0 := by decide
+    have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3ne
+    have h3i' : (3 : Rat)⁻¹ * (3 : Rat) = 1 := Rat.inv_mul_cancel _ h3ne
+    have hεi : ε * ε⁻¹ = 1 := Rat.mul_inv_cancel _ hεne
+    -- (ε/3) * (3/ε) = 1 ⇒ (ε/3)⁻¹ = 3/ε ⇒ 1/(ε/3) = 3/ε.
+    have hprod : (ε / 3) * (3 / ε) = 1 := by
+      rw [Rat.div_def, Rat.div_def]; grind
+    -- 1/(ε/3) = (ε/3)⁻¹.
+    have hone_div : (1 : Rat) / (ε / 3) = (ε / 3)⁻¹ := by
+      rw [Rat.div_def, Rat.one_mul]
+    rw [hone_div]
+    -- (ε/3)⁻¹ = (ε/3)⁻¹ * 1 = (ε/3)⁻¹ * ((ε/3) * (3/ε)) = ((ε/3)⁻¹ * (ε/3)) * (3/ε) = 1 * (3/ε) = 3/ε.
+    have hε3ne : ε / 3 ≠ 0 := by
+      intro h
+      have : (ε / 3) * (3 / ε) = 0 := by rw [h]; exact Rat.zero_mul _
+      rw [hprod] at this; exact (by decide : (1 : Rat) ≠ 0) this
+    have hinv_mul : (ε / 3)⁻¹ * (ε / 3) = 1 := Rat.inv_mul_cancel _ hε3ne
+    have hcalc : (ε / 3)⁻¹ = (ε / 3)⁻¹ * ((ε / 3) * (3 / ε)) := by rw [hprod, Rat.mul_one]
+    rw [hcalc, ← Rat.mul_assoc, hinv_mul, Rat.one_mul]
   have hε_inv_le : ∀ n, N₁ ≤ n → 1 / ((n : Rat) + 1) ≤ ε / 3 := by
     intro n hn
-    -- 1/(n+1) ≤ 1/(N₁+1) ≤ 1/N₁ ≤ ε/3 (when N₁ ≥ 1) or 1/(N₁+1) ≤ ε/3 directly.
-    -- Actually: from 3/ε < N₁ ≤ n ≤ n+1, we have 3/ε < n+1, so (n+1) * ε > 3, so 1/(n+1) < ε/3.
-    have hn1_pos : (0 : Rat) < (n : Rat) + 1 := by
-      have h0n : (0 : Rat) ≤ (n : Rat) := by
-        induction n with
-        | zero => exact Rat.le_refl
-        | succ k ih =>
-          have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
-            rw [Rat.natCast_add]; rfl
-          rw [hcast]; grind
-      grind
-    have hn1ne : ((n : Rat) + 1) ≠ 0 := fun h => by
-      rw [h] at hn1_pos; exact Rat.lt_irrefl hn1_pos
-    have hεne : ε ≠ 0 := fun h => by rw [h] at hε; exact Rat.lt_irrefl hε
-    -- 3/ε < N₁ ≤ (n : Rat); from hN₁ and Nat-cast monotonicity.
-    have hN1_le_n : ((N₁ : Nat) : Rat) ≤ ((n : Nat) : Rat) :=
-      natCast_le_of_le hn
+    have hN1_le_n : ((N₁ : Nat) : Rat) ≤ ((n : Nat) : Rat) := natCast_le_of_le hn
     have h3ε_lt_n : 3 / ε < (n : Rat) := Rat.lt_of_lt_of_le hN₁ hN1_le_n
     have h3ε_lt_n1 : 3 / ε < (n : Rat) + 1 := by
       have hn_lt_n1 : (n : Rat) < (n : Rat) + 1 := by grind
       exact Rat.lt_trans h3ε_lt_n hn_lt_n1
-    -- Multiply both sides by ε > 0: 3 < (n+1) * ε.
-    have h3 : (3 : Rat) < ((n : Rat) + 1) * ε := by
-      have hh := Rat.mul_lt_mul_of_pos_right h3ε_lt_n1 hε
-      have h1 : (3 / ε) * ε = 3 := by
-        rw [Rat.div_def, Rat.mul_assoc, Rat.inv_mul_cancel _ hεne, Rat.mul_one]
-      rw [h1] at hh; exact hh
-    -- So 1/(n+1) < ε/3 (multiply both sides by 1/((n+1)*3) and rearrange).
-    -- We use: 3 * (1/(n+1)) < 3 * (ε/3) = ε, so 1/(n+1) < ε/3.
-    -- Direct: 1/(n+1) < ε/3 iff (n+1) * ε > 3 iff 3 < (n+1) * ε. We have that.
-    -- Convert: 1/(n+1) ≤ ε/3.
-    have h_3_inv_pos : (0 : Rat) < (3 : Rat)⁻¹ := Rat.inv_pos.mpr (by decide)
-    have h_n1_inv_pos : (0 : Rat) < ((n : Rat) + 1)⁻¹ := Rat.inv_pos.mpr hn1_pos
-    have hh_mul : (3 : Rat) * (((n : Rat) + 1)⁻¹ * (3 : Rat)⁻¹) <
-                  (((n : Rat) + 1) * ε) * (((n : Rat) + 1)⁻¹ * (3 : Rat)⁻¹) :=
-      Rat.mul_lt_mul_of_pos_right h3 (Rat.mul_pos h_n1_inv_pos h_3_inv_pos)
-    have hl : (3 : Rat) * (((n : Rat) + 1)⁻¹ * (3 : Rat)⁻¹) =
-              ((n : Rat) + 1)⁻¹ := by
-      have h3ne : (3 : Rat) ≠ 0 := by decide
-      have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3ne
-      have h3i' : (3 : Rat)⁻¹ * 3 = 1 := Rat.inv_mul_cancel _ h3ne
-      grind
-    have hr : (((n : Rat) + 1) * ε) * (((n : Rat) + 1)⁻¹ * (3 : Rat)⁻¹) =
-              ε * (3 : Rat)⁻¹ := by
-      have h_n1_inv : ((n : Rat) + 1) * ((n : Rat) + 1)⁻¹ = 1 :=
-        Rat.mul_inv_cancel _ hn1ne
-      grind
-    rw [hl, hr] at hh_mul
-    -- 1/(n+1) = ((n+1))⁻¹  (since 1/x = 1 * x⁻¹ = x⁻¹).
-    have hone_div : (1 : Rat) / ((n : Rat) + 1) = ((n : Rat) + 1)⁻¹ := by
-      rw [Rat.div_def, Rat.one_mul]
-    have h_eps3 : ε / 3 = ε * (3 : Rat)⁻¹ := by rw [Rat.div_def]
-    rw [hone_div, h_eps3]
-    exact Rat.le_of_lt hh_mul
+    have hlt : (1 : Rat) / (ε / 3) < (n : Rat) + 1 := by rw [h_inv_eq]; exact h3ε_lt_n1
+    exact inv_succ_le_of_le n hε3 hlt
   -- From IsCauchyMR s for k (ε/3): get N₂.
   have hk_ε3_pos : (0 : MyReal) < k (ε / 3) := by
     rw [show (0 : MyReal) = k 0 from rfl, k_lt_iff]; exact hε3
@@ -2741,39 +2720,12 @@ theorem complete (s : Nat → MyReal) (hs : IsCauchyMR s) :
   -- For n ≥ N₂, 1/(n+1) ≤ δ.
   have hinv_le : ∀ n, N₂ ≤ n → 1 / ((n : Rat) + 1) ≤ δ := by
     intro n hn
-    have hn1_pos : (0 : Rat) < (n : Rat) + 1 := by
-      have h0n : (0 : Rat) ≤ (n : Rat) := by
-        induction n with
-        | zero => exact Rat.le_refl
-        | succ k ih =>
-          have hcast : ((k + 1 : Nat) : Rat) = (k : Rat) + 1 := by
-            rw [Rat.natCast_add]; rfl
-          rw [hcast]; grind
-      grind
-    have hn1ne : ((n : Rat) + 1) ≠ 0 := fun h => by
-      rw [h] at hn1_pos; exact Rat.lt_irrefl hn1_pos
-    have hδne : δ ≠ 0 := fun h => by rw [h] at hδpos; exact Rat.lt_irrefl hδpos
     have hN2_le_n : ((N₂ : Nat) : Rat) ≤ ((n : Nat) : Rat) := natCast_le_of_le hn
     have h_N2_lt_n : 1 / δ < (n : Rat) := Rat.lt_of_lt_of_le hN₂ hN2_le_n
     have h_lt_n1 : 1 / δ < (n : Rat) + 1 := by
       have hn_lt_n1 : (n : Rat) < (n : Rat) + 1 := by grind
       exact Rat.lt_trans h_N2_lt_n hn_lt_n1
-    -- Now 1 < δ * (n+1), so 1/(n+1) < δ.
-    have hone : (1 : Rat) < δ * ((n : Rat) + 1) := by
-      have hh := Rat.mul_lt_mul_of_pos_right h_lt_n1 hδpos
-      have h1 : (1 / δ) * δ = 1 := by
-        rw [Rat.div_def, Rat.one_mul, Rat.inv_mul_cancel _ hδne]
-      rw [h1, Rat.mul_comm ((n : Rat) + 1) δ] at hh
-      exact hh
-    have h_inv_lt : (1 : Rat) / ((n : Rat) + 1) < δ := by
-      have h_inv_pos : (0 : Rat) < 1 / ((n : Rat) + 1) := one_div_succ_pos n
-      have hh : 1 * (1 / ((n : Rat) + 1)) < (δ * ((n : Rat) + 1)) * (1 / ((n : Rat) + 1)) :=
-        Rat.mul_lt_mul_of_pos_right hone h_inv_pos
-      have h1 : (1 : Rat) * (1 / ((n : Rat) + 1)) = 1 / ((n : Rat) + 1) := Rat.one_mul _
-      have h2 : (δ * ((n : Rat) + 1)) * (1 / ((n : Rat) + 1)) = δ := by
-        rw [Rat.div_def, Rat.one_mul, Rat.mul_assoc, Rat.mul_inv_cancel _ hn1ne, Rat.mul_one]
-      rw [h1, h2] at hh; exact hh
-    exact Rat.le_of_lt h_inv_lt
+    exact inv_succ_le_of_le n hδpos h_lt_n1
   refine ⟨max N₁ N₂, fun n hn => ?_⟩
   have hN1n : N₁ ≤ n := Nat.le_trans (Nat.le_max_left _ _) hn
   have hN2n : N₂ ≤ n := Nat.le_trans (Nat.le_max_right _ _) hn
