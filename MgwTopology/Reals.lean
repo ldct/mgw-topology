@@ -2858,6 +2858,31 @@ example (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := MyReal.archimedean x
 /-- The rational embedding preserves addition. -/
 example (a b : Rat) : MyReal.k (a + b) = MyReal.k a + MyReal.k b := MyReal.k_add a b
 
+/-- `MyAbs` of zero is zero. -/
+example : MyReal.MyAbs (0 : MyReal) = 0 := MyReal.MyAbs_zero
+
+/-- Triangle inequality typechecks. -/
+example (a b : MyReal) : MyReal.MyAbs (a + b) ≤ MyReal.MyAbs a + MyReal.MyAbs b :=
+  MyReal.MyAbs_add a b
+
+/-- `MyAbs` is non-negative. -/
+example (x : MyReal) : 0 ≤ MyReal.MyAbs x := MyReal.MyAbs_nonneg x
+
+/-- Bridge between `IsCauchyMR`'s bound form and `MyAbs ≤`. -/
+example (a ε : MyReal) :
+    (a ≤ ε ∧ -a ≤ ε) ↔ MyReal.MyAbs a ≤ ε := MyReal.bound_iff_MyAbs_le
+
+/-- `k` is order-reflecting and preserving. -/
+example (a b : Rat) : MyReal.k a ≤ MyReal.k b ↔ a ≤ b := MyReal.k_le_iff
+
+/-- Real Archimedean-of-inverse: a positive real bounds some `1/(n+1)`. -/
+example (x : MyReal) (hx : 0 < x) :
+    ∃ n : Nat, MyReal.k (1 / ((n : Rat) + 1)) ≤ x := MyReal.archimedean_inv x hx
+
+/-- Cauchy completeness: every Cauchy `MyReal`-sequence has a limit. -/
+example (s : Nat → MyReal) (hs : MyReal.IsCauchyMR s) :
+    ∃ L : MyReal, MyReal.Converges s L := MyReal.complete s hs
+
 end SanityChecks
 
 end Mgw.Reals
