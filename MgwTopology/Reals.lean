@@ -1908,44 +1908,6 @@ def IsCauchyMR (s : Nat → MyReal) : Prop :=
 def Converges (s : Nat → MyReal) (L : MyReal) : Prop :=
   ∀ ε : MyReal, 0 < ε → ∃ N : Nat, ∀ n : Nat, N ≤ n → s n - L ≤ ε ∧ -(s n - L) ≤ ε
 
-/-- Stripped density: every real has a rational `ε`-approximation when `ε` is rational
-and positive. We give a weaker form that suffices for the completeness proof:
-the rational `a N` is "close" to `mk a` in the sense of the prereal Cauchy property. -/
-theorem prereal_close (a : MyPrereal) {ε : Rat} (hε : 0 < ε) :
-    ∃ N : Nat, ∀ n, N ≤ n → mk a - k (a n) ≤ k ε ∧ -(mk a - k (a n)) ≤ k ε := by
-  rcases a.prop ε hε with ⟨N, HN⟩
-  refine ⟨N, fun n hn => ?_⟩
-  refine ⟨?_, ?_⟩
-  · -- mk a - k (a n) ≤ k ε
-    show IsNonneg (k ε - (mk a - k (a n)))
-    -- k ε - (mk a - k (a n)) = k ε + k (a n) - mk a
-    show MyPrereal.IsNonneg _
-    -- Reduce via the quotient: equivalence-class of the difference
-    refine MyPrereal.IsNonneg_of_nonneg N (fun m hm => ?_)
-    show 0 ≤ _
-    -- Manually expand: (k ε - (mk a - k (a n))).val m = ε - (a m - a n) = ε - a m + a n
-    show 0 ≤ (((⟨_, isCauchy_const ε⟩ : MyPrereal)) - (a - ⟨_, isCauchy_const (a n)⟩)).val m
-    rw [MyPrereal.sub_apply, MyPrereal.sub_apply]
-    show 0 ≤ ε - (a m - a n)
-    -- |a m - a n| ≤ ε for m, n ≥ N (use HN), so a m - a n ≤ ε
-    have habs := HN m n hm hn
-    have hbnd := absRat_le_iff.mp habs
-    have h1 : a m - a n ≤ ε := hbnd.2
-    grind
-  · -- -(mk a - k (a n)) ≤ k ε
-    show IsNonneg (k ε - -(mk a - k (a n)))
-    show MyPrereal.IsNonneg _
-    refine MyPrereal.IsNonneg_of_nonneg N (fun m hm => ?_)
-    show 0 ≤ _
-    show 0 ≤ (((⟨_, isCauchy_const ε⟩ : MyPrereal)) - -(a - ⟨_, isCauchy_const (a n)⟩)).val m
-    rw [MyPrereal.sub_apply, MyPrereal.neg_apply, MyPrereal.sub_apply]
-    show 0 ≤ ε - -(a m - a n)
-    -- a m - a n ≥ -ε, so -(a m - a n) ≤ ε
-    have habs := HN m n hm hn
-    have hbnd := absRat_le_iff.mp habs
-    have h1 : -ε ≤ a m - a n := hbnd.1
-    grind
-
 /-! ### Max and MyAbs.
 
 We define `max` on `MyReal` classically using `Classical.dec` on `≤`, then
@@ -2711,8 +2673,8 @@ theorem complete (s : Nat → MyReal) (hs : IsCauchyMR s) :
   -- Find rational δ > 0 with k δ + k δ ≤ ε.
   -- (We use k δ + k δ + k δ ≤ ε from exists_pos_rat_third.)
   rcases exists_pos_rat_third hε with ⟨δ, hδpos, hδle⟩
-  -- Use prereal_close on qpr with δ: get N₁ such that ∀ n ≥ N₁, |L - k (q n)| ≤ k δ.
-  rcases prereal_close qpr hδpos with ⟨N₁, HN₁⟩
+  -- Get N₁ from `qpr.prop`; for any n ≥ N₁, `mk_close_at_idx` gives |L - k (q n)| ≤ k δ.
+  rcases qpr.prop δ hδpos with ⟨N₁, HN₁_cauchy⟩
   -- Find N₂ with 1/(n+1) ≤ δ for n ≥ N₂ (Archimedean).
   have hδ_inv : 0 < 1 / δ := by
     rw [Rat.div_def, Rat.one_mul]; exact Rat.inv_pos.mpr hδpos
@@ -2732,8 +2694,11 @@ theorem complete (s : Nat → MyReal) (hs : IsCauchyMR s) :
   -- We have approx_close: |s n - k (q n)| ≤ k (1/(n+1)).
   have happ : MyAbs (s n - k (q n)) ≤ k (1 / ((n : Rat) + 1)) :=
     bound_iff_MyAbs_le.mp (approx_close s n)
-  -- prereal_close: L - k (q n) bounded by k δ.
-  have hL : L - k (q n) ≤ k δ ∧ -(L - k (q n)) ≤ k δ := HN₁ n hN1n
+  -- mk_close_at_idx applied at index `n`: L - k (q n) bounded by k δ.
+  have hM_n : ∀ p q' : Nat, n ≤ p → n ≤ q' → absRat (qpr.val p - qpr.val q') ≤ δ :=
+    fun p q' hp hq' => HN₁_cauchy p q' (Nat.le_trans hN1n hp) (Nat.le_trans hN1n hq')
+  have hL : L - k (q n) ≤ k δ ∧ -(L - k (q n)) ≤ k δ :=
+    mk_close_at_idx qpr hδpos hM_n
   have hL_abs : MyAbs (L - k (q n)) ≤ k δ := bound_iff_MyAbs_le.mp hL
   -- Triangle.
   have hsplit : s n - L = (s n - k (q n)) + (k (q n) - L) := by
