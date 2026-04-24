@@ -1796,6 +1796,52 @@ theorem archimedean (x : MyReal) : ∃ n : Nat, x < (n : MyReal) := by
     have hlast : a N < a N := Rat.lt_of_lt_of_le (Rat.lt_of_lt_of_le h6 h7) h1
     exact Rat.lt_irrefl hlast
 
+/-! ### Small `MyReal` arithmetic/order helpers used downstream. -/
+
+/-- Helper: `x - (-y) = x + y` over `MyReal`. This is definitional once you
+expand `Sub` and `-(-y) = y`. -/
+private theorem sub_neg_eq_add (x y : MyReal) : x - (-y) = x + y := by
+  refine Quotient.inductionOn₂ x y
+    (motive := fun x y => x - (-y) = x + y) (fun u v => ?_)
+  show (mk u) + -(-(mk v)) = mk u + mk v
+  rw [neg_def, neg_def, add_def, add_def]
+  apply Quotient.sound
+  apply R_of_funext; intro n
+  show u n + -(-(v n)) = u n + v n; grind
+
+/-- Right-add monotonicity. -/
+theorem add_le_add_right (x y : MyReal) (h : x ≤ y) (t : MyReal) : x + t ≤ y + t := by
+  rw [add_comm x t, add_comm y t]; exact add_le_add_left _ _ h t
+
+/-- General add monotonicity. -/
+theorem add_le_add {a b c d : MyReal} (h1 : a ≤ b) (h2 : c ≤ d) : a + c ≤ b + d :=
+  le_trans _ _ _ (add_le_add_right _ _ h1 c) (add_le_add_left _ _ h2 b)
+
+/-- Negation reverses ≤. -/
+theorem neg_le_neg {x y : MyReal} (h : x ≤ y) : -y ≤ -x := by
+  rw [le_def] at h ⊢
+  -- IsNonneg (y - x) → IsNonneg (-x - -y)
+  -- -x - -y = -x + y. We have y - x = y + -x = -x + y by add_comm.
+  have hrw1 : y - x = -x + y := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => y - x = -x + y) (fun u v => ?_)
+    show mk v - mk u = -(mk u) + mk v
+    rw [neg_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
+    show v n - u n = -(u n) + v n; grind
+  have hrw2 : -x - -y = -x + y := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => -x - -y = -x + y) (fun u v => ?_)
+    show -(mk u) - -(mk v) = -(mk u) + mk v
+    rw [neg_def, neg_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
+    show -(u n) - -(v n) = -(u n) + v n; grind
+  rw [hrw2]; rw [hrw1] at h; exact h
+
 end MyReal
 
 end Order
@@ -2067,17 +2113,6 @@ theorem MyAbs_eq_neg_of_nonpos {x : MyReal} (hx : x ≤ 0) : MyAbs x = -x := by
   rw [heq] at hx
   exact hx
 
-/-- Helper: `x - (-y) = x + y` over `MyReal`. This is definitional once you
-expand `Sub` and `-(-y) = y`. -/
-private theorem sub_neg_eq_add (x y : MyReal) : x - (-y) = x + y := by
-  refine Quotient.inductionOn₂ x y
-    (motive := fun x y => x - (-y) = x + y) (fun u v => ?_)
-  show (mk u) + -(-(mk v)) = mk u + mk v
-  rw [neg_def, neg_def, add_def, add_def]
-  apply Quotient.sound
-  apply R_of_funext; intro n
-  show u n + -(-(v n)) = u n + v n; grind
-
 /-- The defining `↔` form of `MyAbs ≤`. -/
 theorem MyAbs_le_iff {a b : MyReal} : MyAbs a ≤ b ↔ -b ≤ a ∧ a ≤ b := by
   unfold MyAbs
@@ -2103,39 +2138,6 @@ theorem bound_iff_MyAbs_le {a ε : MyReal} :
     rw [sub_neg_eq_add] at h1; rw [sub_neg_eq_add, add_comm]; exact h1
 
 /-! ### More order helpers and MyAbs API. -/
-
-/-- Right-add monotonicity. -/
-theorem add_le_add_right (x y : MyReal) (h : x ≤ y) (t : MyReal) : x + t ≤ y + t := by
-  rw [add_comm x t, add_comm y t]; exact add_le_add_left _ _ h t
-
-/-- General add monotonicity. -/
-theorem add_le_add {a b c d : MyReal} (h1 : a ≤ b) (h2 : c ≤ d) : a + c ≤ b + d :=
-  le_trans _ _ _ (add_le_add_right _ _ h1 c) (add_le_add_left _ _ h2 b)
-
-/-- Negation reverses ≤. -/
-theorem neg_le_neg {x y : MyReal} (h : x ≤ y) : -y ≤ -x := by
-  rw [le_def] at h ⊢
-  -- IsNonneg (y - x) → IsNonneg (-x - -y)
-  -- -x - -y = -x + y. We have y - x = y + -x = -x + y by add_comm.
-  have hrw1 : y - x = -x + y := by
-    refine Quotient.inductionOn₂ x y
-      (motive := fun x y => y - x = -x + y) (fun u v => ?_)
-    show mk v - mk u = -(mk u) + mk v
-    rw [neg_def, sub_def, add_def]
-    apply Quotient.sound
-    apply R_of_funext; intro n
-    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
-    show v n - u n = -(u n) + v n; grind
-  have hrw2 : -x - -y = -x + y := by
-    refine Quotient.inductionOn₂ x y
-      (motive := fun x y => -x - -y = -x + y) (fun u v => ?_)
-    show -(mk u) - -(mk v) = -(mk u) + mk v
-    rw [neg_def, neg_def, sub_def, add_def]
-    apply Quotient.sound
-    apply R_of_funext; intro n
-    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
-    show -(u n) - -(v n) = -(u n) + v n; grind
-  rw [hrw2]; rw [hrw1] at h; exact h
 
 /-- A real is ≤ its absolute value. -/
 theorem le_MyAbs (x : MyReal) : x ≤ MyAbs x := le_max_left _ _
