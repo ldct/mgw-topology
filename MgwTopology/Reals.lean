@@ -2102,6 +2102,255 @@ theorem bound_iff_MyAbs_le {a ε : MyReal} :
   · rw [le_def] at h1 ⊢
     rw [sub_neg_eq_add] at h1; rw [sub_neg_eq_add, add_comm]; exact h1
 
+/-! ### More order helpers and MyAbs API. -/
+
+/-- Right-add monotonicity. -/
+theorem add_le_add_right (x y : MyReal) (h : x ≤ y) (t : MyReal) : x + t ≤ y + t := by
+  rw [add_comm x t, add_comm y t]; exact add_le_add_left _ _ h t
+
+/-- General add monotonicity. -/
+theorem add_le_add {a b c d : MyReal} (h1 : a ≤ b) (h2 : c ≤ d) : a + c ≤ b + d :=
+  le_trans _ _ _ (add_le_add_right _ _ h1 c) (add_le_add_left _ _ h2 b)
+
+/-- Negation reverses ≤. -/
+theorem neg_le_neg {x y : MyReal} (h : x ≤ y) : -y ≤ -x := by
+  rw [le_def] at h ⊢
+  -- IsNonneg (y - x) → IsNonneg (-x - -y)
+  -- -x - -y = -x + y. We have y - x = y + -x = -x + y by add_comm.
+  have hrw1 : y - x = -x + y := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => y - x = -x + y) (fun u v => ?_)
+    show mk v - mk u = -(mk u) + mk v
+    rw [neg_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
+    show v n - u n = -(u n) + v n; grind
+  have hrw2 : -x - -y = -x + y := by
+    refine Quotient.inductionOn₂ x y
+      (motive := fun x y => -x - -y = -x + y) (fun u v => ?_)
+    show -(mk u) - -(mk v) = -(mk u) + mk v
+    rw [neg_def, neg_def, sub_def, add_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    simp only [MyPrereal.sub_apply, MyPrereal.add_apply, MyPrereal.neg_apply]
+    show -(u n) - -(v n) = -(u n) + v n; grind
+  rw [hrw2]; rw [hrw1] at h; exact h
+
+/-- A real is ≤ its absolute value. -/
+theorem le_MyAbs (x : MyReal) : x ≤ MyAbs x := le_max_left _ _
+
+/-- The negation of a real is ≤ its absolute value. -/
+theorem neg_le_MyAbs (x : MyReal) : -x ≤ MyAbs x := le_max_right _ _
+
+/-- `MyAbs x ≤ y` iff both `x ≤ y` and `-x ≤ y`. -/
+theorem MyAbs_le_iff' {x y : MyReal} : MyAbs x ≤ y ↔ x ≤ y ∧ -x ≤ y := max_le_iff
+
+/-- Triangle inequality for `MyAbs`. -/
+theorem MyAbs_add (a b : MyReal) : MyAbs (a + b) ≤ MyAbs a + MyAbs b := by
+  rw [MyAbs_le_iff']
+  refine ⟨?_, ?_⟩
+  · -- a + b ≤ |a| + |b|
+    exact add_le_add (le_MyAbs a) (le_MyAbs b)
+  · -- -(a + b) ≤ |a| + |b|
+    -- -(a+b) = -a + -b
+    have hrw : -(a + b) = -a + -b := by
+      refine Quotient.inductionOn₂ a b
+        (motive := fun a b => -(a + b) = -a + -b) (fun u v => ?_)
+      show -(mk u + mk v) = -(mk u) + -(mk v)
+      rw [add_def, neg_def, neg_def, neg_def, add_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      show -(u n + v n) = -(u n) + -(v n); grind
+    rw [hrw]
+    exact add_le_add (neg_le_MyAbs a) (neg_le_MyAbs b)
+
+/-- `MyAbs (a - b) = MyAbs (b - a)`. -/
+theorem MyAbs_sub_comm (a b : MyReal) : MyAbs (a - b) = MyAbs (b - a) := by
+  -- MyAbs (a - b) = MyAbs (-(b - a))
+  have hrw : a - b = -(b - a) := by
+    refine Quotient.inductionOn₂ a b
+      (motive := fun a b => a - b = -(b - a)) (fun u v => ?_)
+    show mk u - mk v = -(mk v - mk u)
+    rw [sub_def, sub_def, neg_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    simp only [MyPrereal.sub_apply, MyPrereal.neg_apply]
+    show u n - v n = -(v n - u n); grind
+  rw [hrw, MyAbs_neg]
+
+/-- `MyAbs` of a rational embedding is the embedding of `absRat`. -/
+theorem k_abs (a : Rat) : MyAbs (k a) = k (absRat a) := by
+  classical
+  by_cases h : 0 ≤ a
+  · -- 0 ≤ k a, MyAbs (k a) = k a, absRat a = a
+    rw [absRat_of_nonneg h]
+    apply MyAbs_eq_self_of_nonneg
+    -- 0 ≤ k a
+    rw [le_def]
+    -- IsNonneg (k a - 0)
+    have hrw : k a - (0 : MyReal) = k a := by
+      show k a + -(0 : MyReal) = k a
+      have hn : -(0 : MyReal) = 0 := by
+        show -(mk 0) = mk 0
+        rw [neg_def]
+        apply Quotient.sound
+        apply R_of_funext; intro n
+        show -(0 : Rat) = 0; exact Rat.neg_zero
+      rw [hn, add_zero]
+    rw [hrw]
+    -- k a is IsNonneg
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg 0 (fun _ _ => ?_)
+    show 0 ≤ a; exact h
+  · -- a ≤ 0; MyAbs (k a) = -k a = k (-a) = k (absRat a)
+    have ha' : a ≤ 0 := Rat.le_of_lt (Rat.not_le.mp h)
+    rw [absRat_of_nonpos ha']
+    -- k (-a) = -(k a)
+    rw [k_neg]
+    apply MyAbs_eq_neg_of_nonpos
+    -- k a ≤ 0
+    rw [le_def]
+    have hrw : (0 : MyReal) - k a = mk (-⟨fun _ => a, isCauchy_const a⟩ : MyPrereal) := by
+      show (0 : MyReal) + -(k a) = _
+      show (mk 0) + -(mk ⟨fun _ => a, isCauchy_const a⟩) = _
+      rw [neg_def, add_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      simp only [MyPrereal.add_apply, MyPrereal.neg_apply, MyPrereal.zero_apply]
+      show 0 + -a = -a; grind
+    rw [hrw]
+    -- IsNonneg (mk (-⟨...⟩))
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg 0 (fun _ _ => ?_)
+    show 0 ≤ -a
+    have := Rat.neg_le_neg ha'; simpa using this
+
+/-- `MyAbs x = 0 ↔ x = 0`. -/
+theorem MyAbs_eq_zero_iff {x : MyReal} : MyAbs x = 0 ↔ x = 0 := by
+  refine ⟨fun h => ?_, fun h => by rw [h, MyAbs_zero]⟩
+  -- MyAbs x = 0 means -0 ≤ x ∧ x ≤ 0, hence x = 0.
+  have h1 : MyAbs x ≤ 0 := by rw [h]; exact le_refl 0
+  rw [MyAbs_le_iff] at h1
+  rcases h1 with ⟨hle1, hle2⟩
+  -- -0 ≤ x and x ≤ 0
+  have hzero_neg : -(0 : MyReal) = 0 := by
+    show -(mk 0) = mk 0
+    rw [neg_def]
+    apply Quotient.sound
+    apply R_of_funext; intro n
+    show -(0 : Rat) = 0; exact Rat.neg_zero
+  rw [hzero_neg] at hle1
+  exact le_antisymm _ _ hle2 hle1
+
+/-- `0 < MyAbs x ↔ x ≠ 0`. -/
+theorem MyAbs_pos_iff {x : MyReal} : 0 < MyAbs x ↔ x ≠ 0 := by
+  refine ⟨fun ⟨_, hne⟩ hx => ?_, fun hx => ?_⟩
+  · rw [hx, MyAbs_zero] at hne; exact hne rfl
+  · refine ⟨MyAbs_nonneg x, ?_⟩
+    intro h
+    apply hx
+    exact MyAbs_eq_zero_iff.mp h.symm
+
+/-! ### k-monotonicity. -/
+
+/-- The rational embedding is order-reflecting and order-preserving (≤). -/
+theorem k_le_iff {a b : Rat} : k a ≤ k b ↔ a ≤ b := by
+  classical
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · -- IsNonneg (k b - k a) and we want a ≤ b on Rat.
+    -- k b - k a = k (b - a). IsNonneg (k (b - a)) means it's IsPos or ≈ 0.
+    -- For a constant Cauchy sequence, IsPos iff (b - a) > 0; ≈ 0 iff (b - a) = 0.
+    -- So a ≤ b.
+    by_contra hba
+    have hba' : b < a := Rat.not_le.mp hba
+    -- a - b > 0, so k a - k b is positive (IsPos), so ¬ IsNonneg (k b - k a) — contradiction.
+    -- Actually we have IsNonneg (k b - k a). Show IsNonneg (-(k b - k a)) and use eq_zero_of...
+    -- Easier: contradict directly.
+    -- IsNonneg (k b - k a) means MyPrereal.IsNonneg (kb_pre - ka_pre).
+    -- (kb_pre - ka_pre).val n = b - a < 0, constantly. So it can't be IsNonneg.
+    rw [le_def] at h
+    have hsub : k b - k a = mk ⟨fun _ => b - a, isCauchy_const _⟩ := by
+      show k b + -(k a) = _
+      rw [show k a = mk ⟨fun _ => a, isCauchy_const a⟩ from rfl,
+          show k b = mk ⟨fun _ => b, isCauchy_const b⟩ from rfl,
+          neg_def, add_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      show b + -a = b - a; grind
+    rw [hsub] at h
+    -- h : MyPrereal.IsNonneg ⟨fun _ => b - a, _⟩
+    -- (b - a) < 0; this is impossible.
+    show False
+    have hba_neg : b - a < 0 := by grind
+    rcases h with hpos | hzero
+    · -- IsPos: ∃ δ > 0 ∃ N, ∀ n ≥ N, δ ≤ b - a. But b - a < 0.
+      rcases hpos with ⟨δ, hδpos, N, HN⟩
+      have := HN N (Nat.le_refl _)
+      show False
+      have : δ ≤ b - a := this
+      have : 0 < b - a := Rat.lt_of_lt_of_le hδpos this
+      exact Rat.lt_irrefl (Rat.lt_trans this hba_neg)
+    · -- ≈ 0: ∀ ε > 0 ∃ N ∀ n ≥ N, |b - a - 0| ≤ ε
+      have habs : 0 < absRat (b - a) := absRat_pos_iff.mpr (fun heq => by
+        rw [heq] at hba_neg; exact Rat.lt_irrefl hba_neg)
+      have hh : 0 < absRat (b - a) / 2 := by
+        rw [Rat.div_def]; exact Rat.mul_pos habs (Rat.inv_pos.mpr (by decide))
+      rcases hzero (absRat (b - a) / 2) hh with ⟨N, HN⟩
+      have := HN N (Nat.le_refl _)
+      show False
+      have hh1 : absRat ((b - a) - 0) ≤ absRat (b - a) / 2 := this
+      have hh2 : (b - a) - 0 = b - a := by grind
+      rw [hh2] at hh1
+      -- absRat (b - a) ≤ absRat (b - a) / 2 → absRat (b - a) ≤ 0 → contradicts habs.
+      have hsum := MyPrereal.half_add_half (absRat (b - a))
+      have : absRat (b - a) ≤ absRat (b - a) - absRat (b - a) / 2 := by grind
+      grind
+  · -- a ≤ b → k a ≤ k b
+    rw [le_def]
+    have hsub : k b - k a = mk ⟨fun _ => b - a, isCauchy_const _⟩ := by
+      show k b + -(k a) = _
+      rw [show k a = mk ⟨fun _ => a, isCauchy_const a⟩ from rfl,
+          show k b = mk ⟨fun _ => b, isCauchy_const b⟩ from rfl,
+          neg_def, add_def]
+      apply Quotient.sound
+      apply R_of_funext; intro n
+      show b + -a = b - a; grind
+    rw [hsub]
+    show MyPrereal.IsNonneg _
+    refine MyPrereal.IsNonneg_of_nonneg 0 (fun _ _ => ?_)
+    show 0 ≤ b - a
+    grind
+
+/-- The rational embedding is order-reflecting and order-preserving (<). -/
+theorem k_lt_iff {a b : Rat} : k a < k b ↔ a < b := by
+  rw [lt_def]
+  refine ⟨fun ⟨h1, h2⟩ => ?_, fun h => ?_⟩
+  · have h1' : a ≤ b := k_le_iff.mp h1
+    have h2' : a ≠ b := fun heq => h2 (by rw [heq])
+    rcases Rat.le_iff_lt_or_eq.mp h1' with h | h
+    · exact h
+    · exact absurd h h2'
+  · refine ⟨k_le_iff.mpr (Rat.le_of_lt h), ?_⟩
+    intro hk
+    -- k a = k b → a ≈ b sequences
+    have hab : (⟨fun _ => a, isCauchy_const a⟩ : MyPrereal) ≈ ⟨fun _ => b, isCauchy_const b⟩ :=
+      Quotient.exact hk
+    -- a - b = 0 contradicts a < b.
+    have hba_pos : 0 < b - a := by grind
+    have hh : 0 < (b - a) / 2 := by
+      rw [Rat.div_def]; exact Rat.mul_pos hba_pos (Rat.inv_pos.mpr (by decide))
+    rcases hab ((b - a) / 2) hh with ⟨N, HN⟩
+    have := HN N (Nat.le_refl _)
+    have : absRat (a - b) ≤ (b - a) / 2 := this
+    have hba : absRat (a - b) = b - a := by
+      have habs : a - b ≤ 0 := by grind
+      rw [absRat_of_nonpos habs]; grind
+    rw [hba] at this
+    show False
+    have hsum := MyPrereal.half_add_half (b - a)
+    grind
+
 /-! ### Approximation via the prereal `n`-th term. -/
 
 /-- Helper: `1/(n+1) > 0` for `n : Nat`. -/
