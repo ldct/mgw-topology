@@ -1858,6 +1858,17 @@ namespace MyReal
 
 open MyPrereal
 
+/-- Auxiliary `Rat` fact: `3⁻¹ + 3⁻¹ + 3⁻¹ = 1`. Used in `exists_pos_rat_third`
+and in `approx_isCauchy` to recombine an `ε/3 + ε/3 + ε/3 = ε` budget. -/
+private theorem inv_three_thrice :
+    ((3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹) = 1 := by
+  have h3 : (3 : Rat) ≠ 0 := by decide
+  have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3
+  have heq : (3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹ = (1 + 1 + 1) * (3 : Rat)⁻¹ := by grind
+  rw [heq]
+  have h1 : ((1 : Rat) + 1 + 1) = 3 := by grind
+  rw [h1]; exact h3i
+
 /-- The embedding of `Rat` into `MyReal` via the constant Cauchy sequence. -/
 def k (q : Rat) : MyReal := mk ⟨fun _ => q, isCauchy_const q⟩
 
@@ -2542,20 +2553,8 @@ private theorem exists_pos_rat_third {ε : MyReal} (hε : 0 < ε) :
     exact Rat.mul_pos hηpos (Rat.inv_pos.mpr (by decide))
   · -- k(η/3) + k(η/3) + k(η/3) = k(η/3 + η/3 + η/3) = k η ≤ ε
     have hsum : η / 3 + η / 3 + η / 3 = η := by
-      have h3 : (3 : Rat) ≠ 0 := by decide
-      have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3
-      rw [Rat.div_def, ← Rat.mul_add, ← Rat.mul_add]
-      have hsum3 : ((3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹) = 1 := by
-        -- 3 * (3⁻¹ + 3⁻¹ + 3⁻¹) = 3 * 3⁻¹ + 3 * 3⁻¹ + 3 * 3⁻¹ = 1 + 1 + 1 = 3.
-        -- So 3⁻¹ + 3⁻¹ + 3⁻¹ = 1.
-        have h3i' : (3 : Rat)⁻¹ * (3 : Rat) = 1 := Rat.inv_mul_cancel _ h3
-        -- Use the field equation 3 * (3⁻¹ * 3) = 3 → 3⁻¹ * 3 = 1.
-        -- Easier: 3⁻¹ + 3⁻¹ + 3⁻¹ = (1 + 1 + 1) * 3⁻¹ = 3 * 3⁻¹ = 1.
-        have heq : (3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹ = (1 + 1 + 1) * (3 : Rat)⁻¹ := by grind
-        rw [heq]
-        have h1 : ((1 : Rat) + 1 + 1) = 3 := by grind
-        rw [h1]; exact h3i
-      rw [hsum3]; exact Rat.mul_one η
+      rw [Rat.div_def, ← Rat.mul_add, ← Rat.mul_add, inv_three_thrice]
+      exact Rat.mul_one η
     -- Now k(η/3) + k(η/3) + k(η/3) = k(η/3 + η/3 + η/3) = k η.
     have hk_sum : k (η / 3) + k (η / 3) + k (η / 3) = k η := by
       rw [← k_add, ← k_add, hsum]
@@ -2708,16 +2707,9 @@ theorem approx_isCauchy (s : Nat → MyReal) (hs : IsCauchyMR s) :
   have hsum_eq : k (ε / 3) + k (ε / 3) + k (ε / 3) = k ε := by
     rw [← k_add, ← k_add]
     have heq : ε / 3 + ε / 3 + ε / 3 = ε := by
-      have h3 : (3 : Rat) ≠ 0 := by decide
-      have h3i : (3 : Rat) * (3 : Rat)⁻¹ = 1 := Rat.mul_inv_cancel _ h3
       have heq : ε / 3 + ε / 3 + ε / 3 = ε * ((3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹) := by
         rw [Rat.div_def, Rat.mul_add, Rat.mul_add]
-      have hsum3 : ((3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹) = 1 := by
-        have heq : (3 : Rat)⁻¹ + (3 : Rat)⁻¹ + (3 : Rat)⁻¹ = (1 + 1 + 1) * (3 : Rat)⁻¹ := by grind
-        rw [heq]
-        have h1 : ((1 : Rat) + 1 + 1) = 3 := by grind
-        rw [h1]; exact h3i
-      rw [heq, hsum3, Rat.mul_one]
+      rw [heq, inv_three_thrice, Rat.mul_one]
     rw [heq]
   have h_total : MyAbs (k (approx s p) - k (approx s q)) ≤ k ε := by
     rw [hsplit, ← hsum_eq]
