@@ -19,3 +19,4 @@ import MgwTopology.LocalFinite
 import MgwTopology.Paracompact
 import MgwTopology.FunctionSpace
 import MgwTopology.Baire
+import MgwTopology.Reals
